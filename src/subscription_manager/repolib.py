@@ -302,6 +302,16 @@ class RepoUpdateActionCommand(object):
         release_source = YumReleaseverSource()
 
         for content in matching_content:
+            # if we specify a full url, use it for baseurl instead of appending
+            # it to the locally defined
+            # NOTE: would we want a config option to always override cdn with
+            # the local value?
+	    # FIXME: move to from_ent_cert_content, this is
+	    # just for a rebase
+            if content.cdn:
+                repo['baseurl'] = self.join(content.cdn, self._use_release_for_releasever(content.url))
+            if content.ca_cert:
+                repo['sslcacert'] = content.ca_cert
             repo = Repo.from_ent_cert_content(content, baseurl, ca_cert,
                                               release_source)
 
@@ -330,6 +340,7 @@ class RepoUpdateActionCommand(object):
         written_value = self.written_overrides.overrides.get(repo.id, {}).get(key)
         # Compare values as strings to avoid casting problems from io
         return written_value is not None and value is not None and str(written_value) == str(value)
+
 
     def _build_props(self, old_repo, new_repo):
         result = {}

@@ -382,7 +382,6 @@ class RepoUpdateActionTests(fixture.SubManFixture):
         # Immutable properties should be always be added/updated,
         # and removed if undefined in the new repo definition.
         self.assertFalse("proxy_username" in existing_repo.keys())
-
     def test_overrides_removed_revert_to_default(self):
         update_action = RepoUpdateActionCommand()
         update_action.written_overrides.overrides = {'x': {'gpgcheck': 'blah'}}
@@ -438,6 +437,133 @@ class RepoUpdateActionTests(fixture.SubManFixture):
         update_action._set_override_info(new_repo)
         update_action.update_repo(old_repo, new_repo)
         self.assertFalse('somekey' in old_repo)
+    def test_unknown_property_is_preserved(self):
+        existing_repo = Repo('testrepo')
+        existing_repo['fake_prop'] = 'fake'
+        self.assertTrue(('fake_prop', 'fake') in existing_repo.items())
+
+    def test_existing_order_is_preserved(self):
+        config = (('key 1', 'value 1'), ('key b', 'value b'),
+                ('key 3', 'value 3'))
+        repo = Repo('testrepo', config)
+        self.assertEquals(config, repo.items()[:3])
+
+    def test_empty_strings_not_set_in_file(self):
+        r = Repo('testrepo', (('proxy', ""),))
+        r['proxy'] = ""
+        self.assertFalse(("proxy", "") in r.items())
+        r.update({"proxy": ""})
+        self.assertFalse(("proxy", "") in r.items())
+
+
+class UpdateActionTests(unittest.TestCase):
+
+    def setUp(self):
+        stub_prod = StubProduct("fauxprod", provided_tags="TAG1,TAG2")
+        stub_prod2 = StubProduct("fauxprovidedprod", provided_tags="TAG4")
+        stub_prod_cert = StubProductCertificate(stub_prod, provided_products=[stub_prod2])
+        stub_prod2 = StubProduct("fauxprod2", provided_tags="TAG5,TAG6")
+        stub_prod2_cert = StubProductCertificate(stub_prod2)
+        stub_prod_dir = StubProductDirectory([stub_prod_cert, stub_prod2_cert])
+
+        stub_content = [
+                StubContent("c1", required_tags="", gpg=None),   # no required tags
+                StubContent("c2", required_tags="TAG1", gpg=""),
+                StubContent("c3", required_tags="TAG1,TAG2,TAG3"),  # should get skipped
+                StubContent("c4", required_tags="TAG1,TAG2,TAG4,TAG5,TAG6",
+                    gpg="/gpg.key", url="/$some/$path"),
+                StubContent("c5", content_type="file", required_tags="", gpg=None),
+                StubContent("c6", content_type="file", required_tags="", gpg=None),
+                StubContent("no_cdn", required_tags="", url="/some/path"),
+                StubContent("cdn", required_tags="", url="/some/path", cdn="https://cdn.example.com"),
+        ]
+        self.stub_ent_cert = StubEntitlementCertificate(stub_prod, content=stub_content)
+        stub_ent_dir = StubCertificateDirectory([self.stub_ent_cert])
+
+        repolib.ConsumerIdentity = stubs.StubConsumerIdentity
+        stub_uep = stubs.StubUEP()
+        self.update_action = UpdateAction(prod_dir=stub_prod_dir,
+                ent_dir=stub_ent_dir, uep=stub_uep)
+
+    def _find_content(self, content_list, name):
+        """
+        Scan list of content for one with name.
+        """
+        for content in content_list:
+            if content['name'] == name:
+                return content
+        return None
+
+    def test_no_cdn(self):
+        content = self.update_action.get_content(self.stub_ent_cert,
+                "http://example.com", None)
+        no_cdn = self._find_content(content, "no_cdn")
+        self.assertEquals("http://example.com/some/path", no_cdn['baseurl'])
+
+    def test_cdn(self):
+        content = self.update_action.get_content(self.stub_ent_cert,
+                "http://example.com", None)
+        cdn = self._find_content(content, "cdn")
+        self.assertEquals("https://cdn.example.com/some/path", cdn['baseurl'])
+
+    def test_no_gpg_key(self):
+        content = self.update_action.get_content(self.stub_ent_cert,
+                "http://example.com", None)
+        c1 = self._find_content(content, 'c1')
+        self.assertEquals('', c1['gpgkey'])
+        self.assertEquals('0', c1['gpgcheck'])
+
+        c2 = self._find_content(content, 'c2')
+        self.assertEquals('', c2['gpgkey'])
+        self.assertEquals('0', c2['gpgcheck'])
+
+    def test_gpg_key(self):
+        content = self.update_action.get_content(self.stub_ent_cert,
+                "http://example.com", None)
+        c4 = self._find_content(content, 'c4')
+        self.assertEquals('http://example.com/gpg.key', c4['gpgkey'])
+        self.assertEquals('1', c4['gpgcheck'])
+
+    def test_ui_repoid_vars(self):
+        content = self.update_action.get_content(self.stub_ent_cert,
+                "http://example.com", None)
+        c4 = self._find_content(content, 'c4')
+        self.assertEquals('some path', c4['ui_repoid_vars'])
+        c2 = self._find_content(content, 'c2')
+        self.assertEquals(None, c2['ui_repoid_vars'])
+
+    def test_tags_found(self):
+        content = self.update_action.get_unique_content()
+        self.assertEquals(3, len(content))
+
+    def test_join(self):
+        base = "http://foo/bar"
+        # File urls should be preserved
+        self.assertEquals("file://this/is/a/file",
+            self.update_action.join(base, "file://this/is/a/file"))
+        # Http locations should be preserved
+        self.assertEquals("http://this/is/a/url",
+            self.update_action.join(base, "http://this/is/a/url"))
+        # Blank should remain blank
+        self.assertEquals("",
+            self.update_action.join(base, ""))
+        # Url Fragments should work
+        self.assertEquals("http://foo/bar/baz",
+            self.update_action.join(base, "baz"))
+        self.assertEquals("http://foo/bar/baz",
+            self.update_action.join(base, "/baz"))
+        base = base + "/"
+        self.assertEquals("http://foo/bar/baz",
+            self.update_action.join(base, "baz"))
+        self.assertEquals("http://foo/bar/baz",
+            self.update_action.join(base, "/baz"))
+
+    def test_only_allow_content_of_type_yum(self):
+        content = self.update_action.get_content(self.stub_ent_cert,
+                                                 "http://example.com", None)
+        self.assertTrue(self._find_content(content, "c1") is not None)
+        self.assertTrue(self._find_content(content, "c5") is None)
+        self.assertTrue(self._find_content(content, "c6") is None)
 
 
 class TidyWriterTests(unittest.TestCase):
