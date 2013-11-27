@@ -20,14 +20,13 @@ import logging
 import os
 import string
 import subscription_manager.injection as inj
-from urllib import basejoin
 
 from rhsm.config import initConfig
 from rhsm.connection import RemoteServerException, RestlibException
 
 from certlib import ActionLock, DataLib
 from certdirectory import Path, ProductDirectory, EntitlementDirectory
-from utils import UnsupportedOperationException
+from utils import UnsupportedOperationException, yum_url_join
 
 log = logging.getLogger('rhsm-app.' + __name__)
 
@@ -245,7 +244,7 @@ class UpdateAction:
                 repo['enabled'] = "1"
             else:
                 repo['enabled'] = "0"
-            repo['baseurl'] = self.join(baseurl, self._use_release_for_releasever(content.url))
+            repo['baseurl'] = yum_url_join(baseurl, self._use_release_for_releasever(content.url))
 
             # Extract the variables from thr url
             repo_parts = repo['baseurl'].split("/")
@@ -259,7 +258,7 @@ class UpdateAction:
                 repo['gpgkey'] = ""
                 repo['gpgcheck'] = '0'
             else:
-                repo['gpgkey'] = self.join(baseurl, gpg_url)
+                repo['gpgkey'] = yum_url_join(baseurl, gpg_url)
                 # Leave gpgcheck as the default of 1
 
             repo['sslclientkey'] = self.get_key_path(ent_cert)
@@ -304,18 +303,6 @@ class UpdateAction:
         repo['proxy'] = proxy
         repo['proxy_username'] = CFG.get('server', 'proxy_user')
         repo['proxy_password'] = CFG.get('server', 'proxy_password')
-
-    def join(self, base, url):
-        if len(url) == 0:
-            return url
-        elif '://' in url:
-            return url
-        else:
-            if (base and (not base.endswith('/'))):
-                base = base + '/'
-            if (url and (url.startswith('/'))):
-                url = url.lstrip('/')
-            return basejoin(base, url)
 
     def update_repo(self, old_repo, new_repo):
         """

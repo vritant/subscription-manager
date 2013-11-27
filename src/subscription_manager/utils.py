@@ -19,7 +19,7 @@ import os
 import re
 import signal
 import socket
-from urlparse import urlparse
+from urlparse import urlparse, urljoin
 
 from M2Crypto.SSL import SSLError
 
@@ -79,6 +79,19 @@ class UnsupportedOperationException(Exception):
     a newer API is available.
     """
     pass
+
+
+def yum_url_join(base, url):
+    if len(url) == 0:
+        return url
+    elif '://' in url:
+        return url
+    else:
+        if (base and (not base.endswith('/'))):
+            base = base + '/'
+        if (url and (url.startswith('/'))):
+            url = url.lstrip('/')
+        return urljoin(base, url)
 
 
 def parse_server_info(local_server_entry):

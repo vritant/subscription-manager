@@ -5,7 +5,7 @@ from subscription_manager.utils import remove_scheme, parse_server_info, \
     parse_baseurl_info, format_baseurl, ServerUrlParseErrorEmpty, \
     ServerUrlParseErrorNone, ServerUrlParseErrorPort, ServerUrlParseErrorScheme, \
     ServerUrlParseErrorJustScheme, get_version, get_client_versions, \
-    get_server_versions, Versions, friendly_join
+    get_server_versions, Versions, friendly_join, yum_url_join
 from subscription_manager import certlib
 from rhsm.config import DEFAULT_PORT, DEFAULT_PREFIX, DEFAULT_HOSTNAME, \
     DEFAULT_CDN_HOSTNAME, DEFAULT_CDN_PORT, DEFAULT_CDN_PREFIX
@@ -440,6 +440,30 @@ class TestGetVersion(unittest.TestCase):
         versions.get_release.return_value = ""
         result = get_version(versions, "foobar")
         self.assertEquals("1.0", result)
+
+
+class TestYumUrlJoin(unittest.TestCase):
+    def test_yum_url_join(self):
+        base = "http://foo/bar"
+        # File urls should be preserved
+        self.assertEquals("file://this/is/a/file",
+            yum_url_join(base, "file://this/is/a/file"))
+        # Http locations should be preserved
+        self.assertEquals("http://this/is/a/url",
+            yum_url_join(base, "http://this/is/a/url"))
+        # Blank should remain blank
+        self.assertEquals("",
+            yum_url_join(base, ""))
+        # Url Fragments should work
+        self.assertEquals("http://foo/bar/baz",
+            yum_url_join(base, "baz"))
+        self.assertEquals("http://foo/bar/baz",
+            yum_url_join(base, "/baz"))
+        base = base + "/"
+        self.assertEquals("http://foo/bar/baz",
+            yum_url_join(base, "baz"))
+        self.assertEquals("http://foo/bar/baz",
+            yum_url_join(base, "/baz"))
 
 
 class TestFriendlyJoin(unittest.TestCase):
