@@ -762,6 +762,58 @@ class AutohealCommand(CliCommand):
             self._toggle(self.options.enable or False)
 
 
+class ErrorHandler(object):
+    def __init__(self, exc_msg):
+        self.exc_msg = exc_msg
+        self.exception_mapper = ExceptionMapper()
+
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if not exc_type:
+            # whats the right ret value for normal exit?
+            return True
+
+        # On Python 2.4 and earlier, sys.exit triggers a SystemExit exception,
+        # which can land us into this block of code. We do not want to handle
+        # this or print any messages as the caller would already have done so,
+        # so just re-throw and let Python have at it.
+
+        # have the type, could check it directly
+        if isinstance(exc_val, SystemExit):
+            raise exc_val
+
+        log.debug("exc_type: %s" % exc_type)
+        log.debug("exc_val: %s" % exc_val)
+        log.debug("exc_tb: %s" % exc_tb)
+
+        log.error(self.exc_msg)
+        log.exception(exc_val)
+
+        mapped_message = self.exception_mapper.get_message(exc_val)
+        if mapped_message:
+            self.display(mapped_message)
+        else:
+            self.display(exc_val)
+
+        self.cleanup(exc_val)
+
+    def display(self, msg):
+        print msg
+
+    def cleanup(self, exc_val):
+        pass
+
+
+class FatalErrorHandler(ErrorHandler):
+    exit_status = -1
+
+    def cleanup(self, exc_val):
+        system_exit(self.exit_status)
+
+
 class ServiceLevelCommand(OrgCommand):
 
     def __init__(self):
@@ -821,7 +873,7 @@ class ServiceLevelCommand(OrgCommand):
 
     def _do_command(self):
         self._validate_options()
-        try:
+        with FatalErrorHandler("Unable to retrieve service levels."):
             # If we have a username/password, we're going to use that, otherwise
             # we'll use the identity certificate. We already know one or the other
             # exists:
@@ -843,13 +895,6 @@ class ServiceLevelCommand(OrgCommand):
 
             if self.options.list:
                 self.list_service_levels()
-
-        except connection.RestlibException, re:
-            log.exception(re)
-            log.error(u"Error: Unable to retrieve service levels: %s" % re)
-            system_exit(-1, re.msg)
-        except Exception, e:
-            handle_exception(_("Error: Unable to retrieve service levels."), e)
 
     def set_service_level(self, service_level):
         if service_level == "":
@@ -884,7 +929,8 @@ class ServiceLevelCommand(OrgCommand):
             else:
                 org_key = self.org
 
-        try:
+        with ErrorHandler(not_supported):
+        #try:
             slas = self.cp.getServiceLevelList(org_key)
             if len(slas):
                 print("+-------------------------------------------+")
@@ -894,14 +940,14 @@ class ServiceLevelCommand(OrgCommand):
                     print sla
             else:
                 print _("This org does not have any subscriptions with service levels.")
-        except connection.RemoteServerException, e:
-            system_exit(-1, not_supported)
-        except connection.RestlibException, e:
-            if e.code == 404 and\
-                e.msg.find('/servicelevels') > 0:
-                system_exit(-1, not_supported)
-            else:
-                raise e
+        #except connection.RemoteServerException, e:
+        #    system_exit(-1, not_supported)
+        #except connection.RestlibException, e:
+        #    if e.code == 404 and\
+        #        e.msg.find('/servicelevels') > 0:
+        #        system_exit(-1, not_supported)
+        #    else:
+        #        raise e
 
 
 class RegisterCommand(UserPassCommand):
