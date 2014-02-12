@@ -767,7 +767,6 @@ class ErrorHandler(object):
         self.exc_msg = exc_msg
         self.exception_mapper = ExceptionMapper()
 
-
     def __enter__(self):
         return self
 

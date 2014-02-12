@@ -39,6 +39,9 @@ PERROR_PORT_MESSAGE = _("Server URL port should be numeric")
 PERROR_SCHEME_MESSAGE = _("Server URL has an invalid scheme. http:// and https:// are supported")
 
 
+REMOTE_SERVER_EXIT_STATUS = -1
+
+
 class ExceptionMapper(object):
     def __init__(self):
 
@@ -62,6 +65,11 @@ class ExceptionMapper(object):
             connection.RestlibException: (None, self.format_restlib_exception),
         }
 
+        self.exit_status_map = {
+            # an enum like would be useful here
+            connection.RemoteServerException: REMOTE_SERVER_EXIT_STATUS
+        }
+
     def format_default(self, e, message):
         return message
 
@@ -74,11 +82,22 @@ class ExceptionMapper(object):
     def format_restlib_exception(self, restlib_exception, message_template):
         return restlib_exception.msg
 
-    def get_message(self, ex):
+    def lookup_exception(self, ex, exception_map):
         # Lookup by __class__ instead of type to support old style classes
         classes = inspect.getmro(ex.__class__)
         for next_class in classes:
-            if next_class in self.message_map:
-                message_template, formatter = self.message_map[next_class]
-                return formatter(ex, message_template)
+            if next_class in exception_map:
+                exception_value = self.exception_map[next_class]
+                return exception_value
         return None
+
+    def get_message(self, ex):
+        message_formatter = self.lookup_exception(ex, self.message_map)
+        if message_formatter:
+            message_template, formatter = message_formatter
+            return formatter(ex, message_template)
+        return None
+
+    def get_exit_status(self, ex):
+        """Get the status code the process should sys.exit with if handling a FatalError."""
+        return self.lookup_exception(ex, self.exit_status_map)
