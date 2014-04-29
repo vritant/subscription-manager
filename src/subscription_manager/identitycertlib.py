@@ -66,15 +66,13 @@ class IdentityUpdateAction(object):
         # FIXME: move persist stuff here
         from subscription_manager import managerlib
 
-        idcert = identity.getConsumerCert()
-
         consumer = self._get_consumer(identity)
 
         # only write the cert if the serial has changed
         # FIXME: this would be a good place to have a Consumer/ConsumerCert
         # model.
         # FIXME: and this would be a ConsumerCert model '!='
-        if idcert.getSerialNumber() != consumer['idCert']['serial']['serial']:
+        if identity.serial != consumer['idCert']['serial']['serial']:
             log.debug('identity certificate changed, writing new one')
 
             # FIXME: should be in this module? managerlib is an odd place

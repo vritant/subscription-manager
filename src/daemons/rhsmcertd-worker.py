@@ -60,7 +60,7 @@ def main(options, log):
         log.critical(_("Your identity certificate has expired"))
         raise e
     except connection.GoneException, ge:
-        uuid = ConsumerIdentity.read().getConsumerId()
+        uuid = ConsumerIdentity.read().uuid
         if ge.deleted_id == uuid:
             log.critical(_("This consumer's profile has been deleted from the server. Its local certificates will now be archived"))
             managerlib.clean_all_data()

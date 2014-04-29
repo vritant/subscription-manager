@@ -1151,7 +1151,7 @@ class AsyncBackend(object):
     # in the main thread with just the network stuff threaded?
     def _find_suitable_service_levels(self, consumer, facts):
         consumer_json = self.backend.cp_provider.get_consumer_auth_cp().getConsumer(
-                consumer.getConsumerId())
+                consumer.uuid)
 
         if 'serviceLevel' not in consumer_json:
             raise ServiceLevelNotSupportedException()

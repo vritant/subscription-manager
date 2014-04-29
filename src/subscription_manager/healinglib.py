@@ -71,8 +71,7 @@ class HealingUpdateAction(object):
     def perform(self):
         # inject
         identity = inj.require(inj.IDENTITY)
-        uuid = identity.getConsumerId()
-        consumer = self.uep.getConsumer(uuid)
+        consumer = self.uep.getConsumer(identity.uuid)
 
         if 'autoheal' not in consumer or not consumer['autoheal']:
             log.info("Auto-heal disabled on server, skipping.")
@@ -94,9 +93,9 @@ class HealingUpdateAction(object):
             if not cs.is_valid():
                 log.warn("Found invalid entitlements for today: %s" %
                         today)
-                self.plugin_manager.run("pre_auto_attach", consumer_uuid=uuid)
-                ents = self.uep.bind(uuid, today)
-                self.plugin_manager.run("post_auto_attach", consumer_uuid=uuid,
+                self.plugin_manager.run("pre_auto_attach", consumer_uuid=identity.uuid)
+                ents = self.uep.bind(identity.uuid, today)
+                self.plugin_manager.run("post_auto_attach", consumer_uuid=identity.uuid,
                                         entitlement_data=ents)
 
                 # NOTE: we need to call EntCertActionInvoker.update after Healing.update
@@ -114,9 +113,9 @@ class HealingUpdateAction(object):
                 elif tomorrow > cs.compliant_until:
                     log.warn("Entitlements will be invalid by tomorrow: %s" %
                             tomorrow)
-                    self.plugin_manager.run("pre_auto_attach", consumer_uuid=uuid)
-                    ents = self.uep.bind(uuid, tomorrow)
-                    self.plugin_manager.run("post_auto_attach", consumer_uuid=uuid,
+                    self.plugin_manager.run("pre_auto_attach", consumer_uuid=identity.uuid)
+                    ents = self.uep.bind(identity.uuid, tomorrow)
+                    self.plugin_manager.run("post_auto_attach", consumer_uuid=identity.uuid,
                                             entitlement_data=ents)
                     self.report = cert_updater.update()
                 else:

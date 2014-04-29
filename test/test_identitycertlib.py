@@ -26,9 +26,9 @@ CONSUMER_DATA = {'releaseVer': {'id': 1, 'releaseVer': '123123'},
 
 
 mock_consumer_identity = mock.Mock(spec=identity.ConsumerIdentity)
-mock_consumer_identity.getSerialNumber.return_value = 3787455826750723380
-mock_consumer_identity.getConsumerName.return_value = "Mock Consumer Identity"
-mock_consumer_identity.getConsumerId.return_value = "11111-00000-11111-0000"
+mock_consumer_identity.serial.return_value = 3787455826750723380
+mock_consumer_identity.name.return_value = "Mock Consumer Identity"
+mock_consumer_identity.uuid.return_value = "11111-00000-11111-0000"
 
 
 # Identities to inject for testing
@@ -48,9 +48,9 @@ class ValidIdentity(StubIdentity):
 
 
 different_mock_consumer_identity = mock.Mock(spec=identity.ConsumerIdentity)
-different_mock_consumer_identity.getSerialNumber.return_value = 123123123123
-different_mock_consumer_identity.getConsumerName.return_value = "A Different Mock Consumer Identity"
-different_mock_consumer_identity.getConsumerId.return_value = "AAAAAA-BBBBB-CCCCCC-DDDDD"
+different_mock_consumer_identity.serial.return_value = 123123123123
+different_mock_consumer_identity.name.return_value = "A Different Mock Consumer Identity"
+different_mock_consumer_identity.uuid.return_value = "AAAAAA-BBBBB-CCCCCC-DDDDD"
 
 
 class DifferentValidConsumerIdentity(StubIdentity):

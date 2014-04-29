@@ -70,10 +70,10 @@ def persist_consumer_cert(consumerinfo):
     consumer = identity.ConsumerIdentity(consumerinfo['idCert']['key'],
                                          consumerinfo['idCert']['cert'])
     consumer.write()
-    consumer_info = {"consumer_name": consumer.getConsumerName(),
-                     "uuid": consumer.getConsumerId()}
+    consumer_info = {"consumer_name": consumer.name,
+                     "uuid": consumer.uuid}
     log.info("Consumer created: %s" % consumer_info)
-    system_log("Registered system with identity: %s" % consumer.getConsumerId())
+    system_log("Registered system with identity: %s" % consumer.uuid)
     return consumer_info
 
 
