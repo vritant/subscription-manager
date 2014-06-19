@@ -29,4 +29,7 @@ setup(name="subscription-manager",
                 'src/rhsm_debug',
                 'src/rct'],
       test_suite='nose.collector',
-      tests_require=['mock', 'nose', 'coverage', 'freezegun', 'polib', 'pep8', 'pyflakes'])
+      dependency_links=['git+https://github.com/alikins/pyqver.git#egg=pyqver'],
+      tests_require=['mock', 'nose', 'coverage',
+                     'freezegun', 'polib', 'pep8', 'pyflakes',
+                     'pyqver'])
