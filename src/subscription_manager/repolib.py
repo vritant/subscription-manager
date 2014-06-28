@@ -227,27 +227,32 @@ class RepoUpdateActionCommand(object):
 
         lst = set()
 
+        skipped_content = set()
+
+        tags_we_have = self.prod_dir.get_provided_tags()
+
         for cert in certs:
             if not cert.content:
                 continue
 
-            tags_we_have = self.prod_dir.get_provided_tags()
-
             for content in cert.content:
                 if not content.content_type in ALLOWED_CONTENT_TYPES:
-                    log.debug("Content type %s not allowed, skipping content: %s" % (
-                        content.content_type, content.label))
+                    # Other plugins may handle the content, so this is not
+                    # worth noting anymore.
+                    #log.debug("Content type %s not allowed, skipping content: %s" % (
+                    #    content.content_type, content.label))
                     continue
 
                 all_tags_found = True
                 for tag in content.required_tags:
                     if not tag in tags_we_have:
-                        log.debug("Missing required tag '%s', skipping content: %s" % (
-                            tag, content.label))
+                        #log.debug("Missing required tag '%s', skipping content: %s" % (
+                        #    tag, content.label))
+                        skipped_content.add(content)
                         all_tags_found = False
                 if all_tags_found:
                     lst.add(content)
-
+#        log.debug("skipped content: %s" % [x.label for x in skipped_content])
         return lst
 
     def get_content(self, ent_cert, baseurl, ca_cert):
