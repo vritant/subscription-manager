@@ -105,3 +105,25 @@ class EntitlementSource(object):
 
     def __getitem__(self, key):
         return self._entitlements[key]
+
+
+class CdnInfo(object):
+    """Contains CDN info (baseurl, ca_cert) for config plugins to populate urls with.
+
+    This could also provide per cdn or per content type URL creation."""
+
+    def __init__(self):
+        pass
+
+
+class CdnInfoProvider(object):
+    """Provides a CdnInfo for a particular Content."""
+
+    @classmethod
+    def by_content(cls, content):
+        """Return a CdnInfo for Content content."""
+
+        # we could map different CdnInfo's based on content.type, content.url,
+        # etc. For now, we just have the RhsmCdnInfo based on the cdn info
+        # from rhsm.conf
+

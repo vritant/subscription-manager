@@ -153,7 +153,7 @@ class OstreeRemote(object):
                                           section=section)
 
     @classmethod
-    def from_ent_cert_content(cls, ent_cert_content):
+    def from_ent_cert_content(cls, ent_cert_content, cdn_info):
         """Create a OstreeRemote object based on a models.EntCertEntitledContent object.
 
         'content' is a models.EntCertEntitledContent, as found in a
@@ -432,9 +432,10 @@ class OstreeOriginUpdater(object):
 
 
 class OstreeConfigUpdatesBuilder(object):
-    def __init__(self, ostree_config, contents):
+    def __init__(self, ostree_config, contents, cdn_info):
         self.orig_ostree_config = ostree_config
         self.contents = contents
+        self.cdn_info = cdn_info
 
     def build(self):
         """Figure out what the new config should be and return a OstreeConfigUpdates.
@@ -449,7 +450,7 @@ class OstreeConfigUpdatesBuilder(object):
         content_to_remote = {}
         log.debug("builder.build %s" % self.contents)
         for content in self.contents:
-            remote = OstreeRemote.from_ent_cert_content(content)
+            remote = OstreeRemote.from_ent_cert_content(content, self.cdn_info)
             new_remotes.add(remote)
 
             # track for reports

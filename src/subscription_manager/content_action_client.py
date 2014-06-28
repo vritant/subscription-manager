@@ -85,12 +85,14 @@ class EntitlementDirEntitlementSource(models.EntitlementSource):
     """Populate with entitlement info from ent dir of ent certs."""
 
     def __init__(self):
+        self.cdn_info = models.CdnInfo()
         ent_dir = inj.require(inj.ENT_DIR)
 
         # populate from ent certs
         self._entitlements = []
         for ent_cert in ent_dir.list_valid():
             self._entitlements.append(models.EntitlementCertEntitlement.from_ent_cert(ent_cert))
+
 
 
 class ContentActionClient(base_action_client.BaseActionClient):
