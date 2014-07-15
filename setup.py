@@ -30,6 +30,6 @@ setup(name="subscription-manager",
                 'src/rct'],
       test_suite='nose.collector',
       dependency_links=['git+https://github.com/alikins/pyqver.git#egg=pyqver'],
-      tests_require=['mock', 'nose', 'coverage',
+      tests_require=['mock', 'nose', 'nose-xvfb', 'coverage',
                      'freezegun', 'polib', 'pep8', 'pyflakes',
                      'pyqver'])
