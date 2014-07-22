@@ -31,5 +31,6 @@ setup(name="subscription-manager",
                 # There isn't a good way to run flake8 command
                 # on tests as well. Note this is wrong for
                 # our unused "install" case
-                'test/'],
+                'test/',
+                'bin/'],
       test_suite='nose.collector')
