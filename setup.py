@@ -28,12 +28,4 @@ setup(name="subscription-manager",
                 'src/subscription_manager/plugin/ostree',
                 'src/rhsm_debug',
                 'src/rct'],
-      test_suite='nose.collector',
-      # this setup.py is dev only, so require nose, so we can bootstrap
-      # setup.py nosetests
-      setup_requires=['nose'],
-      dependency_links=['git+https://github.com/alikins/pyqver.git#egg=pyqver',
-                        'git+https://github.com/awood/nose-xvfb.git#egg=nose-xvfb'],
-      tests_require=['mock', 'nose-xvfb', 'coverage',
-                     'freezegun', 'polib', 'pep8', 'pyflakes',
-                     'pyqver'])
+      test_suite='nose.collector')
