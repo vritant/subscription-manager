@@ -18,3 +18,5 @@ po/.zanata-cache
 etc-conf/*.desktop
 bin/rhsmcertd
 bin/rhsm-icon
+build/
+dist/
