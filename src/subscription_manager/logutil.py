@@ -29,6 +29,10 @@ DEBUG_LOG_FORMAT = u'%(asctime)s [%(name)s %(levelname)s] ' \
                     '%(cmd_name)s(%(process)d):%(threadName)s ' \
                     '@%(filename)s:%(funcName)s:%(lineno)d - %(message)s'
 
+SSL_DEBUG_LOG_FORMAT = u'%(asctime)s [%(levelname)s] ' \
+                        '%(cmd_name)s ' \
+                        '- %(message)s'
+
 
 def _get_log_file_path():
     path = RHSM_LOG
@@ -122,7 +126,7 @@ def init_logger():
     if 'SUBMAN_SSL_DEBUG' in os.environ:
         handler = _get_stdout_handler()
 
-        handler.setFormatter(logging.Formatter(DEBUG_LOG_FORMAT))
+        handler.setFormatter(logging.Formatter(SSL_DEBUG_LOG_FORMAT))
         logging.getLogger('rhsm-ssl').setLevel(logging.DEBUG)
         logging.getLogger('rhsm-ssl').addHandler(handler)
 
