@@ -99,11 +99,14 @@ def init_logger():
 
     logging.getLogger("subscription_manager").setLevel(LOG_LEVEL)
     logging.getLogger("rhsm").setLevel(LOG_LEVEL)
+    #logging.getLogger("rhsm.ssl").setLevel(LOG_LEVEL)
+    #logging.getLogger("rhsm-ssl").setLevel(LOG_LEVEL)
     # FIXME: remove 'rhsm-app' when we rename all the loggers
     logging.getLogger("rhsm-app").setLevel(LOG_LEVEL)
 
     logging.getLogger("subscription_manager").addHandler(_get_handler())
     logging.getLogger("rhsm").addHandler(_get_handler())
+    #logging.getLogger("rhsm-ssl").addHandler(_get_handler())
     # FIXME: remove
     logging.getLogger("rhsm-app").addHandler(_get_handler())
 
@@ -116,6 +119,13 @@ def init_logger():
         logging.getLogger().setLevel(logging.DEBUG)
         logging.getLogger().addHandler(handler)
 
+    if 'SUBMAN_SSL_DEBUG' in os.environ:
+        handler = _get_stdout_handler()
+
+        handler.setFormatter(logging.Formatter(DEBUG_LOG_FORMAT))
+        logging.getLogger('rhsm-ssl').setLevel(logging.DEBUG)
+        logging.getLogger('rhsm-ssl').addHandler(handler)
+
 
 def init_logger_for_yum():
     init_logger()
@@ -123,4 +133,5 @@ def init_logger_for_yum():
     # Don't send log records up to yum/yum plugin conduit loggers
     logging.getLogger("subscription_manager").propagate = False
     logging.getLogger("rhsm").propagate = False
+    logging.getLogger("rhsm.ssl").propagate = False
     logging.getLogger("rhsm-app").propagate = False
