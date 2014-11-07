@@ -17,7 +17,6 @@
 #
 
 import datetime
-import fileinput
 import fnmatch
 import getpass
 import gettext
@@ -1116,7 +1115,10 @@ class RegisterCommand(UserPassCommand):
             if 'serviceLevel' not in consumer and self.options.service_level:
                 system_exit(os.EX_UNAVAILABLE, _("Error: The --servicelevel option is not supported "
                                  "by the server. Did not complete your request."))
-            autosubscribe(self.cp, consumer['uuid'],
+
+                # FIXME: this could be skipped if there are no install products
+                # and no act keys
+                autosubscribe(self.cp, consumer['uuid'],
                     service_level=self.options.service_level)
 
         if (self.options.consumerid or self.options.activation_keys or self.autoattach):
@@ -1399,21 +1401,41 @@ class AttachCommand(CliCommand):
         self.parser.add_option("--auto", action='store_true',
             help=_("Automatically attach compatible subscriptions to this system. This is the default action."))
         self.parser.add_option("--servicelevel", dest="service_level",
-                               help=_("service level to apply to this system"))
-        self.parser.add_option("--file", dest="file",
+                               help=_("service level to apply to this system, requires --auto"))
+        self.parser.add_option("--file", dest="file", default=None,
                                 help=_("A file from which to read pool IDs. If a hyphen is provided, pool IDs will be read from stdin."))
 
         # re bz #864207
         _("All installed products are covered by valid entitlements.")
         _("No need to update subscriptions at this time.")
 
-    def _read_pool_ids(self, file):
-        if not self.options.pool:
-            self.options.pool = []
-
-        for line in fileinput.input(file):
+    def _read_pool_ids(self, fileobj):
+        pool_ids = []
+        for line in fileobj.readlines():
             for pool in filter(bool, re.split(r"\s+", line.strip())):
-                self.options.pool.append(pool)
+                pool_ids.append(pool)
+        return pool_ids
+
+    def _get_pool_fileobj(self, filename):
+        if filename == '-':
+            fileobj = sys.stdin
+        else:
+            # _read_pool_file handles exceptions
+            fileobj = open(filename, 'r')
+        return fileobj
+
+    def _read_pool_file(self, filename):
+        if self.options.file != '-' and not os.path.isfile(self.options.file):
+            system_exit(os.EX_DATAERR,
+                        _("Error: The file \"%s\" does not exist or cannot be read.") % self.options.file)
+
+        try:
+            pool_fileobj = self._get_pool_fileobj(filename)
+            pool_ids = self._read_pool_ids(pool_fileobj)
+        except IOError, e:
+            system_exit(os.EX_DATAERR, e)
+
+        return pool_ids
 
     def _short_description(self):
         return _("Attach a specified subscription to the registered system")
@@ -1450,8 +1472,153 @@ class AttachCommand(CliCommand):
                         system_exit(os.EX_DATAERR, _("Error: Received data does not contain any pool IDs."))
                     else:
                         system_exit(os.EX_DATAERR, _("Error: The file \"%s\" does not contain any pool IDs.") % self.options.file)
+        if (self.options.service_level and not self.options.auto):
+            system_exit(os.EX_USAGE, _("Error: Must use --auto with --servicelevel."))
+
+    def attach_pool(self, pool_id, consumer_uuid, quantity):
+
+        # odd html strings will cause issues, reject them here.
+        if (pool_id.find("#") >= 0):
+            # could continue and return empty
+            system_exit(os.EX_USAGE, _("Please enter a valid numeric pool ID."))
+
+        pool_bind_result = {}
+
+        try:
+            # If quantity is None, server will assume 1. pre_subscribe will
+            # report the same.
+            self.plugin_manager.run("pre_subscribe",
+                                    consumer_uuid=consumer_uuid,
+                                    pool_id=pool_id,
+                                    quantity=quantity)
+
+            ents = self.cp.bindByEntitlementPool(consumer_uuid, pool_id, quantity)
+            self.plugin_manager.run("post_subscribe",
+                                    consumer_uuid=consumer_uuid,
+                                    entitlement_data=ents)
+            pool_bind_result['ents'] = ents
+            pool_bind_result['exception'] = None
+
+        except connection.RestlibException, re:
+            # handling of these exceptions takes place in
+            # post_attach_pool_*
+            pool_bind_result['ents'] = []
+            pool_bind_result['exception'] = re
+
+        self.post_attach_pool(pool_id, pool_bind_result)
+
+        return pool_bind_result
+
+    def post_attach_pool_error(self, pool_id, results):
+        error = results['exception']
+        NON_FATAL_ERRORS = [400, 403, 404]
+        if error and error.code not in NON_FATAL_ERRORS:
+            log.exception(error)
+
+            # FIXME:
+            # Don't have to exit now, but that changes behavior
+            system_exit(os.EX_SOFTWARE, re.msg)  # some other error.. don't try again
+
+        print error.msg
+        log.warn(error)
+
+    def post_attach_pool_display(self, pool_id, results):
+        ents = results['ents']
+
+        for ent in ents:
+            pool_json = ent['pool']
+            attach_msg_tmpl = _("Attached pool {poolid} to provide: {productname}")
+            attach_msg = attach_msg_tmpl.format(poolid=pool_id,
+                                                productname=pool_json['productName'])
+            print attach_msg
+            log.info(attach_msg)
+
+    def post_attach_pool(self, pool_id, results):
+        if results['exception']:
+            # this could exit or throw exceptions as needed
+            self.post_attach_pool_error(pool_id, results)
+
+        self.post_attach_pool_display(pool_id, results)
+
+    def attach_pools(self, pool_ids, consumer_uuid, quantity):
+        pool_bind_result_map = {}
+        for pool_id in pool_ids:
+            pool_bind_result = self.attach_pool(pool_id, consumer_uuid, quantity)
+            pool_bind_result_map[pool_id] = pool_bind_result
+
+        return_code = None
+        # If we got any errors, return a result code. We could
+        # just accumulate this as we go...
+        for pool_id, results in pool_bind_result_map.items():
+            if results['exception']:
+                # FIXME: insert fancy exit code math
+                return_code = 1
+
+        return return_code
+
+    def _do_attach(self):
+        cert_action_client = ActionClient()
+        cert_action_client.update()
+
+        return_code = 0
+        cert_update = True
+
+        pool_ids = self.options.pool or []
+
+        if self.options.file:
+            pool_ids += self._read_pool_file(self.options.file)
+
+        if pool_ids:
+            return_code = self.attach_pools(pool_ids,
+                                            consumer_uuid=self.identity.uuid,
+                                            quantity=self.options.quantity)
+        # must be auto
+        else:
+            # Shouldn't cert_sorter know this already?
+            # FIXME: why len? is
+            products_installed = len(get_installed_product_status(self.product_dir,
+                                self.entitlement_dir, self.cp))
+            # if we are green, we don't need to go to the server
+            self.sorter = inj.require(inj.CERT_SORTER)
+
+            if self.sorter.is_valid():
+                if not products_installed:
+                    print _("No Installed products on system. "
+                            "No need to attach subscriptions.")
+                else:
+                    print _("All installed products are covered by valid entitlements. "
+                            "No need to update subscriptions at this time.")
+                cert_update = False
             else:
-                system_exit(os.EX_DATAERR, _("Error: The file \"%s\" does not exist or cannot be read.") % self.options.file)
+                # If service level specified, make an additional request to
+                # verify service levels are supported on the server:
+                if self.options.service_level:
+                    consumer = self.cp.getConsumer(self.identity.uuid)
+                    if 'serviceLevel' not in consumer:
+                        system_exit(os.EX_UNAVAILABLE, _("Error: The --servicelevel option is not "
+                                            "supported by the server. Did not "
+                                            "complete your request."))
+                autosubscribe(self.cp, self.identity.uuid,
+                                service_level=self.options.service_level)
+
+        report = None
+        if cert_update:
+            report = self.entcertlib.update()
+
+        if report and report.exceptions():
+            print 'Entitlement Certificate(s) update failed due to the following reasons:'
+            for e in report.exceptions():
+                print '\t-', str(e)
+        elif self.options.auto:
+            if not products_installed:
+                return_code = 1
+>>>>>>> Refactor 'attach --pool' a bit
+            else:
+                self.sorter.force_cert_check()
+                # run this after entcertlib update, so we have the new entitlements
+                return_code = show_autosubscribe_output(self.cp)
+
+        return return_code
 
     def _do_command(self):
         """
@@ -1466,91 +1633,22 @@ class AttachCommand(CliCommand):
 
         # TODO: change to if self.auto_attach: else: pool/file stuff
         try:
-            cert_action_client = ActionClient()
-            cert_action_client.update()
-            return_code = 0
-            cert_update = True
-            if self.options.pool:
-                subscribed = False
-                for pool in self.options.pool:
-                    try:
-                        # odd html strings will cause issues, reject them here.
-                        if (pool.find("#") >= 0):
-                            system_exit(os.EX_USAGE, _("Please enter a valid numeric pool ID."))
-                        # If quantity is None, server will assume 1. pre_subscribe will
-                        # report the same.
-                        self.plugin_manager.run("pre_subscribe",
-                                                consumer_uuid=self.identity.uuid,
-                                                pool_id=pool,
-                                                quantity=self.options.quantity)
-                        ents = self.cp.bindByEntitlementPool(self.identity.uuid, pool, self.options.quantity)
-                        self.plugin_manager.run("post_subscribe", consumer_uuid=self.identity.uuid, entitlement_data=ents)
-                        # Usually just one, but may as well be safe:
-                        for ent in ents:
-                            pool_json = ent['pool']
-                            print _("Successfully attached a subscription for: %s") % pool_json['productName']
-                            log.info("Successfully attached a subscription for: %s (%s)" %
-                                    (pool_json['productName'], pool))
-                            subscribed = True
-                    except connection.RestlibException, re:
-                        log.exception(re)
-                        if re.code == 403:
-                            print re.msg  # already subscribed.
-                        elif re.code == 400 or re.code == 404:
-                            print re.msg  # no such pool.
-                        else:
-                            system_exit(os.EX_SOFTWARE, re.msg)  # some other error.. don't try again
-                if not subscribed:
-                    return_code = 1
-            # must be auto
-            else:
-                products_installed = len(get_installed_product_status(self.product_dir,
-                                 self.entitlement_dir, self.cp))
-                # if we are green, we don't need to go to the server
-                self.sorter = inj.require(inj.CERT_SORTER)
+            return_code = self._do_attach()
+            # it is okay to call this no matter what happens above,
+            # it's just a notification to perform a check
+            self._request_validity_check()
 
-                if self.sorter.is_valid():
-                    if not products_installed:
-                        print _("No Installed products on system. "
-                                "No need to attach subscriptions.")
-                    else:
-                        print _("All installed products are covered by valid entitlements. "
-                                "No need to update subscriptions at this time.")
-                    cert_update = False
-                else:
-                    # If service level specified, make an additional request to
-                    # verify service levels are supported on the server:
-                    if self.options.service_level:
-                        consumer = self.cp.getConsumer(self.identity.uuid)
-                        if 'serviceLevel' not in consumer:
-                            system_exit(os.EX_UNAVAILABLE, _("Error: The --servicelevel option is not "
-                                             "supported by the server. Did not "
-                                             "complete your request."))
-                    autosubscribe(self.cp, self.identity.uuid,
-                                  service_level=self.options.service_level)
-            report = None
-            if cert_update:
-                report = self.entcertlib.update()
-
-            if report and report.exceptions():
-                print _('Entitlement Certificate(s) update failed due to the following reasons:')
-                for e in report.exceptions():
-                    print '\t-', str(e)
-            elif self.auto_attach:
-                if not products_installed:
-                    return_code = 1
-                else:
-                    self.sorter.force_cert_check()
-                    # run this after entcertlib update, so we have the new entitlements
-                    return_code = show_autosubscribe_output(self.cp)
-
+            # We should replace _do_command returning a return code
+            # with a ReturnCodeException, that *Command.main() would
+            # expect, and would exit. Then we don't have to thread
+            # a return code all the way through, just throw a
+            # ReturnCodeException with the status code (or subclasses)
+            #
+            # That's more or less what system_exit/ SystemExit exceptions do as
+            # well
+            return return_code
         except Exception, e:
             handle_exception("Unable to attach: %s" % e, e)
-
-        # it is okay to call this no matter what happens above,
-        # it's just a notification to perform a check
-        self._request_validity_check()
-        return return_code
 
 
 class SubscribeCommand(AttachCommand):
