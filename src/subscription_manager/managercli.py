@@ -1476,12 +1476,6 @@ class AttachCommand(CliCommand):
             system_exit(os.EX_USAGE, _("Error: Must use --auto with --servicelevel."))
 
     def attach_pool(self, pool_id, consumer_uuid, quantity):
-
-        # odd html strings will cause issues, reject them here.
-        if (pool_id.find("#") >= 0):
-            # could continue and return empty
-            system_exit(os.EX_USAGE, _("Please enter a valid numeric pool ID."))
-
         pool_bind_result = {}
 
         try:
@@ -1542,6 +1536,7 @@ class AttachCommand(CliCommand):
 
     def attach_pools(self, pool_ids, consumer_uuid, quantity):
         pool_bind_result_map = {}
+
         for pool_id in pool_ids:
             pool_bind_result = self.attach_pool(pool_id, consumer_uuid, quantity)
             pool_bind_result_map[pool_id] = pool_bind_result
