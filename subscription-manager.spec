@@ -335,6 +335,15 @@ rm -rf %{buildroot}
 %{_datadir}/rhsm/subscription_manager/model/*.py*
 %{_datadir}/rhsm/subscription_manager/plugin/*.py*
 
+%dir %{_datadir}/rhsm/rhsm_facts
+%dir %{_datadir}/rhsm/rhsm_facts/hardware
+%dir %{_datadir}/rhsm/rhsm_facts/software
+%dir %{_datadir}/rhsm/rhsm_facts/custom
+%dir %{_datadir}/rhsm/rhsm_facts/software/rhn
+%dir %{_datadir}/rhsm/rhsm_facts/software/__init__.py*
+%dir %{_datadir}/rhsm/rhsm_facts/software/rhn.py*
+
+
 # subscription-manager plugins
 %dir %{rhsm_plugins_dir}
 %dir %{_sysconfdir}/rhsm/pluginconf.d
