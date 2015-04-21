@@ -261,8 +261,8 @@ def get_installed_product_status(product_directory, entitlement_directory, uep, 
 class CliCommand(AbstractCLICommand):
     """ Base class for all sub-commands. """
 
-    def __init__(self, name="cli", shortdesc=None, primary=False):
-        AbstractCLICommand.__init__(self, name=name, shortdesc=shortdesc, primary=primary)
+    def __init__(self):
+        AbstractCLICommand.__init__(self)
 
         self.log = self._get_logger()
 
@@ -506,8 +506,8 @@ class UserPassCommand(CliCommand):
     Abstract class for commands that require a username and password
     """
 
-    def __init__(self, name, shortdesc=None, primary=False):
-        super(UserPassCommand, self).__init__(name, shortdesc, primary)
+    def __init__(self):
+        super(UserPassCommand, self).__init__()
         self._username = None
         self._password = None
 
@@ -551,8 +551,8 @@ class OrgCommand(UserPassCommand):
     """
     Abstract class for commands that require an org.
     """
-    def __init__(self, name, shortdesc=None, primary=False):
-        super(OrgCommand, self).__init__(name, shortdesc, primary)
+    def __init__(self):
+        super(OrgCommand, self).__init__()
         self._org = None
         if not hasattr(self, "_org_help_text"):
             self._org_help_text = _("specify organization")
@@ -573,10 +573,9 @@ class OrgCommand(UserPassCommand):
 
 
 class CleanCommand(CliCommand):
-    def __init__(self):
-        shortdesc = _("Remove all local system and subscription data without affecting the server")
-
-        super(CleanCommand, self).__init__("clean", shortdesc, False)
+    name = "clean"
+    shortdesc = _("Remove all local system and subscription data without affecting the server")
+    primary = False
 
     def _do_command(self):
         managerlib.clean_all_data(False)
@@ -592,10 +591,9 @@ class CleanCommand(CliCommand):
 
 
 class RefreshCommand(CliCommand):
-    def __init__(self):
-        shortdesc = _("Pull the latest subscription data from the server")
-
-        super(RefreshCommand, self).__init__("refresh", shortdesc, True)
+    name = "refresh"
+    shortdesc = _("Pull the latest subscription data from the server")
+    primary = True
 
     def _do_command(self):
         self.assert_should_be_registered()
@@ -613,11 +611,15 @@ class RefreshCommand(CliCommand):
 
 
 class IdentityCommand(UserPassCommand):
-    def __init__(self):
-        shortdesc = _("Display the identity certificate for this system or "
-                      "request a new one")
+    name = "identity"
+    shortdesc = _("Display the identity certificate for this system or "
+                  "request a new one")
+    primary = False
 
-        super(IdentityCommand, self).__init__("identity", shortdesc, False)
+    def __init__(self):
+
+        #super(IdentityCommand, self).__init__("identity", shortdesc, False)
+        super(IdentityCommand, self).__init__()
 
         self.parser.add_option("--regenerate", action='store_true',
                                help=_("request a new certificate be generated"))
@@ -690,11 +692,12 @@ class IdentityCommand(UserPassCommand):
 
 
 class OwnersCommand(UserPassCommand):
+    name = "orgs"
+    shortdesc = _("Display the organizations against which a user can register a system")
+    primary = False
 
     def __init__(self):
-        shortdesc = _("Display the organizations against which a user can register a system")
-
-        super(OwnersCommand, self).__init__("orgs", shortdesc, False)
+        super(OwnersCommand, self).__init__()
 
         self._add_url_options()
 
@@ -726,13 +729,14 @@ class OwnersCommand(UserPassCommand):
 
 
 class EnvironmentsCommand(OrgCommand):
+    name = "environments"
+    shortdesc = _("Display the environments available for a user")
+    primary = False
 
     def __init__(self):
-        shortdesc = _("Display the environments available for a user")
         self._org_help_text = _("specify organization for environment list, using organization key")
 
-        super(EnvironmentsCommand, self).__init__("environments", shortdesc,
-                                                  False)
+        super(EnvironmentsCommand, self).__init__()
         self._add_url_options()
 
     def _get_enviornments(self, org):
@@ -768,14 +772,15 @@ class EnvironmentsCommand(OrgCommand):
 
 
 class AutohealCommand(CliCommand):
+    name = "auto-attach"
+    shortdesc = _("Set if subscriptions are attached on a schedule (default of daily)")
+    primary = False
 
     def __init__(self):
         self.uuid = inj.require(inj.IDENTITY).uuid
 
-        shortdesc = _("Set if subscriptions are attached on a schedule (default of daily)")
         self._org_help_text = _("specify whether to enable or disable auto-attaching of subscriptions")
-        super(AutohealCommand, self).__init__("auto-attach", shortdesc,
-                                                False)
+        super(AutohealCommand, self).__init__()
 
         self.parser.add_option("--enable", dest="enable", action='store_true',
                 help=_("try to attach subscriptions for uncovered products each check-in"))
@@ -808,13 +813,13 @@ class AutohealCommand(CliCommand):
 
 
 class ServiceLevelCommand(OrgCommand):
+    name = "service-level"
+    shortdesc = _("Manage service levels for this system")
+    primary = False
 
     def __init__(self):
-
-        shortdesc = _("Manage service levels for this system")
         self._org_help_text = _("specify an organization when listing available service levels using the organization key, only used with --list")
-        super(ServiceLevelCommand, self).__init__("service-level", shortdesc,
-                                                  False)
+        super(ServiceLevelCommand, self).__init__()
 
         self._add_url_options()
         self.parser.add_option("--show", dest="show", action='store_true',
@@ -939,10 +944,13 @@ class ServiceLevelCommand(OrgCommand):
 
 
 class RegisterCommand(UserPassCommand):
-    def __init__(self):
-        shortdesc = get_branding().CLI_REGISTER
+    name = "register"
+    shortdesc = get_branding().CLI_REGISTER
+    primary = True
 
-        super(RegisterCommand, self).__init__("register", shortdesc, True)
+    def __init__(self):
+
+        super(RegisterCommand, self).__init__()
 
         self._add_url_options()
         self.parser.add_option("--baseurl", dest="base_url",
@@ -1214,12 +1222,9 @@ class RegisterCommand(UserPassCommand):
 
 
 class UnRegisterCommand(CliCommand):
-
-    def __init__(self):
-        shortdesc = get_branding().CLI_UNREGISTER
-
-        super(UnRegisterCommand, self).__init__("unregister", shortdesc,
-                                                True)
+    name = "unregister"
+    shortdesc = get_branding().CLI_UNREGISTER
+    primary = True
 
     def _validate_options(self):
         pass
@@ -1257,10 +1262,12 @@ class UnRegisterCommand(CliCommand):
 
 
 class RedeemCommand(CliCommand):
+    name = "redeem"
+    shortdesc = _("Attempt to redeem a subscription for a preconfigured system")
+    primary = False
 
     def __init__(self):
-        shortdesc = _("Attempt to redeem a subscription for a preconfigured system")
-        super(RedeemCommand, self).__init__("redeem", shortdesc, False)
+        super(RedeemCommand, self).__init__()
 
         self.parser.add_option("--email", dest="email", action='store',
                                help=_("email address to notify when "
@@ -1308,9 +1315,12 @@ class RedeemCommand(CliCommand):
 
 
 class ReleaseCommand(CliCommand):
+    name = "release"
+    shortdesc = _("Configure which operating system release to use")
+    primary = True
+
     def __init__(self):
-        shortdesc = _("Configure which operating system release to use")
-        super(ReleaseCommand, self).__init__("release", shortdesc, True)
+        super(ReleaseCommand, self).__init__()
 
         self.parser.add_option("--show", dest="show", action="store_true",
                                help=_("shows current release setting; default command"))
@@ -1383,12 +1393,12 @@ class ReleaseCommand(CliCommand):
 
 
 class AttachCommand(CliCommand):
+    name = "attach"
+    shortdesc = _("Attach a specified subscription to the registered system")
+    primary = True
 
     def __init__(self):
-        super(AttachCommand, self).__init__(
-            self._command_name(),
-            self._short_description(),
-            self._primary())
+        super(AttachCommand, self).__init__()
 
         self.product = None
         self.substoken = None
@@ -1415,15 +1425,6 @@ class AttachCommand(CliCommand):
         for line in fileinput.input(file):
             for pool in filter(bool, re.split(r"\s+", line.strip())):
                 self.options.pool.append(pool)
-
-    def _short_description(self):
-        return _("Attach a specified subscription to the registered system")
-
-    def _command_name(self):
-        return "attach"
-
-    def _primary(self):
-        return True
 
     def _validate_options(self):
         if self.options.pool:
@@ -1555,40 +1556,22 @@ class AttachCommand(CliCommand):
 
 
 class SubscribeCommand(AttachCommand):
-    def __init__(self):
-        super(SubscribeCommand, self).__init__()
-
-    def _short_description(self):
-        return _("Deprecated, see attach")
-
-    def _command_name(self):
-        return "subscribe"
-
-    def _primary(self):
-        return False
+    name = "subscribe"
+    shortdesc = _("Deprecated, see attach")
+    primary = False
 
 
 class RemoveCommand(CliCommand):
+    name = "remove"
+    shortdesc = _("Remove all or specific subscriptions from this system")
+    primary = True
 
     def __init__(self):
-        super(RemoveCommand, self).__init__(
-            self._command_name(),
-            self._short_description(),
-            self._primary())
-
+        super(RemoveCommand, self).__init__()
         self.parser.add_option("--serial", action='append', dest="serials", metavar="SERIAL",
                        help=_("certificate serial number to remove (can be specified more than once)"))
         self.parser.add_option("--all", dest="all", action="store_true",
                                help=_("remove all subscriptions from this system"))
-
-    def _short_description(self):
-        return _("Remove all or specific subscriptions from this system")
-
-    def _command_name(self):
-        return "remove"
-
-    def _primary(self):
-        return True
 
     def _validate_options(self):
         if self.options.serials:
@@ -1679,24 +1662,18 @@ class RemoveCommand(CliCommand):
 
 
 class UnSubscribeCommand(RemoveCommand):
-    def __init__(self):
-        super(UnSubscribeCommand, self).__init__()
-
-    def _short_description(self):
-        return _("Deprecated, see remove")
-
-    def _command_name(self):
-        return "unsubscribe"
-
-    def _primary(self):
-        return False
+    name = "unsubscribe"
+    shortdesc = _("Deprecated, see remove")
+    primary = False
 
 
 class FactsCommand(CliCommand):
+    name = "facts"
+    shortdesc = _("View or update the detected system information")
+    primary = False
 
     def __init__(self):
-        shortdesc = _("View or update the detected system information")
-        super(FactsCommand, self).__init__("facts", shortdesc, False)
+        super(FactsCommand, self).__init__()
 
         self.parser.add_option("--list", action="store_true",
                                help=_("list known facts for this system"))
@@ -1739,10 +1716,12 @@ class FactsCommand(CliCommand):
 
 
 class ImportCertCommand(CliCommand):
+    name = "import"
+    shortdesc = _("Import certificates which were provided outside of the tool")
+    primary = False
 
     def __init__(self):
-        shortdesc = _("Import certificates which were provided outside of the tool")
-        super(ImportCertCommand, self).__init__("import", shortdesc, False)
+        super(ImportCertCommand, self).__init__()
 
         self.parser.add_option("--certificate", action="append", dest="certificate_file",
                                help=_("certificate file to import (can be specified more than once)"))
@@ -1801,9 +1780,12 @@ class ImportCertCommand(CliCommand):
 
 
 class PluginsCommand(CliCommand):
+    name = "plugins"
+    shortdesc = _("View and configure subscription-manager plugins")
+    primary = False
+
     def __init__(self):
-        shortdesc = _("View and configure subscription-manager plugins")
-        super(PluginsCommand, self).__init__("plugins", shortdesc, False)
+        super(PluginsCommand, self).__init__()
 
         SM = "subscription-manager"
         self.parser.add_option("--list", action="store_true",
@@ -1854,10 +1836,12 @@ class PluginsCommand(CliCommand):
 
 
 class ReposCommand(CliCommand):
+    name = "repos"
+    shortdesc = _("List the repositories which this system is entitled to use")
+    primary = False
 
     def __init__(self):
-        shortdesc = _("List the repositories which this system is entitled to use")
-        super(ReposCommand, self).__init__("repos", shortdesc, False)
+        super(ReposCommand, self).__init__()
 
         def repo_callback(option, opt, repoid, parser):
             """
@@ -2025,10 +2009,12 @@ class ReposCommand(CliCommand):
 
 
 class ConfigCommand(CliCommand):
+    name = "config"
+    shortdesc = _("List, set, or remove the configuration parameters in use by this system")
+    primary = False
 
     def __init__(self):
-        shortdesc = _("List, set, or remove the configuration parameters in use by this system")
-        super(ConfigCommand, self).__init__("config", shortdesc, False)
+        super(ConfigCommand, self).__init__()
 
         self.parser.add_option("--list", action="store_true",
                                help=_("list the configuration for this system"))
@@ -2124,10 +2110,12 @@ class ConfigCommand(CliCommand):
 
 
 class ListCommand(CliCommand):
+    name = "list"
+    shortdesc = _("List subscription and product information for this system")
+    primary = True
 
     def __init__(self):
-        shortdesc = _("List subscription and product information for this system")
-        super(ListCommand, self).__init__("list", shortdesc, True)
+        super(ListCommand, self).__init__()
         self.available = None
         self.consumed = None
         self.parser.add_option("--installed", action='store_true', help=_("list shows those products which are installed (default)"))
@@ -2416,9 +2404,12 @@ class ListCommand(CliCommand):
 
 
 class OverrideCommand(CliCommand):
+    name = "repo-override"
+    shortdesc = _("Manage custom content repository settings")
+    primary = False
+
     def __init__(self):
-        shortdesc = _("Manage custom content repository settings")
-        super(OverrideCommand, self).__init__("repo-override", shortdesc, False)
+        super(OverrideCommand, self).__init__()
         self.parser.add_option("--repo", dest="repos", action="append", metavar="REPOID",
             help=_("repository to modify (can be specified more than once)"))
         self.parser.add_option("--remove", dest="removals", action="append", metavar="NAME",
@@ -2535,11 +2526,9 @@ class OverrideCommand(CliCommand):
 
 
 class VersionCommand(CliCommand):
-
-    def __init__(self):
-        shortdesc = _("Print version information")
-
-        super(VersionCommand, self).__init__("version", shortdesc, False)
+    name = "version"
+    shortdesc = _("Print version information")
+    primary = False
 
     def _do_command(self):
         # FIXME: slightly odd in that we log that we can't get the version,
@@ -2552,10 +2541,12 @@ class VersionCommand(CliCommand):
 
 
 class StatusCommand(CliCommand):
+    name = "status"
+    shortdesc = _("Show status information for this system's subscriptions and products")
+    primary = True
 
     def __init__(self):
-        shortdesc = _("Show status information for this system's subscriptions and products")
-        super(StatusCommand, self).__init__("status", shortdesc, True)
+        super(StatusCommand, self).__init__()
         self.parser.add_option("--ondate", dest="on_date",
                                 help=(_("future date to check status on, defaults to today's date (example: %s)")
                                       % strftime("%Y-%m-%d", localtime())))

@@ -33,15 +33,17 @@ class AbstractCLICommand(object):
     Base class for rt commands. This class provides a templated run
     strategy.
     """
-    def __init__(self, name="cli", aliases=None, shortdesc=None, primary=False):
-        self.name = name
-        self.shortdesc = shortdesc
-        self.primary = primary
-        self.aliases = aliases or []
+    name = "cli"
+    aliases = []
+    primary = False
+    shortdesc = "A command thingy"
+
+    def __init__(self):
 
         # include our own HelpFormatter that doesn't try to break
         # long words, since that fails on multibyte words
-        self.parser = OptionParser(usage=self._get_usage(), description=shortdesc,
+        self.parser = OptionParser(usage=self._get_usage(),
+                                   description=self.shortdesc,
                                    formatter=WrappedIndentedHelpFormatter())
 
     def main(self, args=None):
@@ -75,15 +77,10 @@ class CLI(object):
         self.cli_commands = {}
         self.cli_aliases = {}
         for clazz in command_classes:
-            cmd = clazz()
-            # ignore the base class
-            if cmd.name != "cli":
-                self.cli_commands[cmd.name] = cmd
-                for alias in cmd.aliases:
-                    self.cli_aliases[alias] = cmd
-
-    def _add_command(self, cmd):
-        self.cli_commands[cmd.name] = cmd
+            if clazz.name != "cli":
+                self.cli_commands[clazz.name] = clazz
+                for alias in clazz.aliases:
+                    self.cli_aliases[alias] = clazz
 
     def _default_command(self):
         self._usage()
@@ -95,11 +92,11 @@ class CLI(object):
         items.sort()
         items_primary = []
         items_other = []
-        for (name, cmd) in items:
-            if (cmd.primary):
-                items_primary.append(("  " + name, cmd.shortdesc))
+        for (name, cmd_class) in items:
+            if (cmd_class.primary):
+                items_primary.append(("  " + name, cmd_class.shortdesc))
             else:
-                items_other.append(("  " + name, cmd.shortdesc))
+                items_other.append(("  " + name, cmd_class.shortdesc))
 
         all_items = [(_("Primary Modules:"), '\n')] + \
                 items_primary + [('\n' + _("Other Modules:"), '\n')] + \
@@ -132,25 +129,25 @@ class CLI(object):
         if not possiblecmd:
             return None
 
-        cmd = None
+        cmd_class = None
         i = len(possiblecmd)
-        while cmd is None:
+        while cmd_class is None:
             key = " ".join(possiblecmd[:i])
             if key is None or key == "":
                 break
 
-            cmd = self.cli_commands.get(key)
-            if cmd is None:
-                cmd = self.cli_aliases.get(key)
+            cmd_class = self.cli_commands.get(key)
+            if cmd_class is None:
+                cmd_class = self.cli_aliases.get(key)
             i -= 1
-        return cmd
+        return cmd_class
 
     def main(self, args):
-        cmd = self._find_best_match(args)
+        cmd_class = self._find_best_match(args)
         if len(args) < 1:
             self._default_command()
             sys.exit(0)
-        if not cmd:
+        if not cmd_class:
             self._usage()
             # Allow for a 0 return code if just calling --help
             return_code = 1
@@ -158,10 +155,8 @@ class CLI(object):
                 return_code = 0
             sys.exit(return_code)
 
-        # argv[0] is cmd name
-
         try:
-            return cmd.main(args=args)
+            return cmd_class().main(args=args)
         except InvalidCLIOptionError, error:
             print error
 
