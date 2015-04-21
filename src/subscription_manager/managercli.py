@@ -363,20 +363,21 @@ class CliCommand(AbstractCLICommand):
         log.info("Server Versions: %s" % self.server_versions)
 
     def main(self, args=None):
-
+        log.debug("start args=%s", args)
+        args = args or []
         # TODO: For now, we disable the CLI entirely. We may want to allow some commands in the future.
         if rhsm.config.in_container():
             system_exit(os.EX_CONFIG, _("subscription-manager is disabled when running inside a container. Please refer to your host system for subscription management.\n"))
 
         config_changed = False
 
-        # In testing we sometimes specify args, otherwise use the default:
-        if not args:
-            args = sys.argv[1:]
-
+        log.debug("%s args=%s", self, args)
+        log.debug("%s sys.argv %s", self, sys.argv)
         (self.options, self.args) = self.parser.parse_args(args)
 
         # we dont need argv[0] in this list...
+        log.debug("self.args=%s", self.args)
+        log.debug("self.options=%s", self.options)
         self.args = self.args[1:]
         # check for unparsed arguments
         if self.args:
@@ -2611,11 +2612,13 @@ class ManagerCLI(CLI):
                     EnvironmentsCommand, ImportCertCommand, ServiceLevelCommand,
                     VersionCommand, RemoveCommand, AttachCommand, PluginsCommand,
                     AutohealCommand, OverrideCommand]
-        CLI.__init__(self, command_classes=commands)
+        #CLI.__init__(self, command_classes=commands)
+        super(ManagerCLI, self).__init__(command_classes=commands)
 
-    def main(self):
+    def main(self, args=None):
+        args = args or []
         managerlib.check_identity_cert_perms()
-        return CLI.main(self)
+        return super(ManagerCLI, self).main(args)
 
 
 if __name__ == "__main__":

@@ -68,7 +68,7 @@ class AbstractCLICommand(object):
 
 
 # taken wholseale from rho...
-class CLI:
+class CLI(object):
 
     def __init__(self, command_classes=None):
         command_classes = command_classes or []
@@ -121,7 +121,11 @@ class CLI:
         This function ignores the arguments which begin with --
         """
         possiblecmd = []
-        for arg in args[1:]:
+
+        if not args:
+            return None
+
+        for arg in args:
             if not arg.startswith("-"):
                 possiblecmd.append(arg)
 
@@ -139,24 +143,25 @@ class CLI:
             if cmd is None:
                 cmd = self.cli_aliases.get(key)
             i -= 1
-
         return cmd
 
-    def main(self):
-        cmd = self._find_best_match(sys.argv)
-        if len(sys.argv) < 2:
+    def main(self, args):
+        cmd = self._find_best_match(args)
+        if len(args) < 1:
             self._default_command()
             sys.exit(0)
         if not cmd:
             self._usage()
             # Allow for a 0 return code if just calling --help
             return_code = 1
-            if (len(sys.argv) > 1) and (sys.argv[1] == "--help"):
+            if (len(args) > 1) and (args[1] == "--help"):
                 return_code = 0
             sys.exit(return_code)
 
+        # argv[0] is cmd name
+
         try:
-            return cmd.main()
+            return cmd.main(args=args)
         except InvalidCLIOptionError, error:
             print error
 

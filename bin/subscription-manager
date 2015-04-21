@@ -67,10 +67,10 @@ except ImportError, e:
                   "Error: %s" % e)
 
 
-def main():
+def main(args):
     # execute
     try:
-        return managercli.ManagerCLI().main()
+        return managercli.ManagerCLI().main(args)
     except KeyboardInterrupt:
         system_exit(0, "\nUser interrupted process.")
 
@@ -79,7 +79,7 @@ def main():
 
 if __name__ == '__main__':
     try:
-        sys.exit(abs(main() or 0))
+        sys.exit(abs(main(args=sys.argv[1:]) or 0))
     except SystemExit, e:
         #this is a non-exceptional exception thrown by Python 2.4, just
         #re-raise, bypassing handle_exception

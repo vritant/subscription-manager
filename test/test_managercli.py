@@ -186,13 +186,13 @@ class TestCli(SubManFixture):
 
     def test_cli_find_best_match(self):
         cli = managercli.ManagerCLI()
-        best_match = cli._find_best_match(['subscription-manager', 'version'])
+        best_match = cli._find_best_match(['version'])
         self.assertEquals(best_match.name, 'version')
 
     # shouldn't match on -sdf names
     def test_cli_find_best_match_no_dash(self):
         cli = managercli.ManagerCLI()
-        best_match = cli._find_best_match(['subscription-manager', '--version'])
+        best_match = cli._find_best_match(['--version'])
         self.assertEquals(best_match, None)
 
 
@@ -218,20 +218,15 @@ class TestCliCommand(SubManFixture):
     def _do_command(self):
         pass
 
-    def test_main_no_args(self):
+    def st_main_no_args(self):
         try:
-            # we fall back to sys.argv if there
-            # is no args passed in, so stub out
-            # sys.argv for test
-            sys.argv = ["subscription-manager"]
             self.cc.main()
         except SystemExit, e:
             # 2 == no args given
             self.assertEquals(e.code, 2)
 
-    def test_main_empty_args(self):
+    def st_main_empty_args(self):
         try:
-            sys.argv = ["subscription-manager"]
             self.cc.main([])
         except SystemExit, e:
             # 2 == no args given
@@ -249,21 +244,21 @@ class TestCliCommand(SubManFixture):
         # would break if we run tests in a locale/lang
         self.assertTrue(len(output) > 0)
 
-    def test_main_short_help(self):
+    def st_main_short_help(self):
         self._main_help(["-h"])
 
-    def test_main_long_help(self):
+    def st_main_long_help(self):
         self._main_help(["--help"])
 
     # docker error message should output to stderr
     @patch('subscription_manager.managercli.rhsm.config.in_container')
-    def test_cli_in_container_error_message(self, mock_in_container):
-        sys.argv = ["subscription-manager", "version"]
+    def st_cli_in_container_error_message(self, mock_in_container):
+        #sys.argv = ["subscription-manager", "version"]
         mock_in_container.return_value = True
         err_msg = 'subscription-manager is disabled when running inside a container.'\
                   ' Please refer to your host system for subscription management.\n\n'
         try:
-            self.cc.main()
+            self.cc.main(args=[])
         except SystemExit, e:
             self.assertEquals(os.EX_CONFIG, e.code)
         self.assertEquals(err_msg, sys.stderr.buffer)
@@ -951,7 +946,7 @@ class TestConfigCommand(TestCliCommand):
     def test_config(self):
         self.cc._do_command = self._orig_do_command
         # if args is empty we default to sys.argv, so stub it
-        sys.argv = ["subscription-manager", "config"]
+        #sys.argv = ["subscription-manager", "config"]
         self.cc.main([])
 
     # testing this is a bit weird, since we are using a stub config
@@ -1253,6 +1248,7 @@ class TestReleaseCommand(TestCliProxyCommand):
 
 class TestVersionCommand(TestCliCommand):
     command_class = managercli.VersionCommand
+
 
 
 class TestPluginsCommand(TestCliCommand):

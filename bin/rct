@@ -40,13 +40,13 @@ _ = gettext.gettext
 from rct.cli import RctCLI
 
 
-def main():
-    return RctCLI().main()
+def main(args):
+    return RctCLI().main(args=args)
 
 
 if __name__ == '__main__':
     try:
-        sys.exit(abs(main() or 0))
+        sys.exit(abs(main(args=sys.argv[1:]) or 0))
     except SystemExit, e:
         #this is a non-exceptional exception thrown by Python 2.4, just
         #re-raise, bypassing handle_exception
