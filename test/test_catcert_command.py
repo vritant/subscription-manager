@@ -36,7 +36,7 @@ class CatCertCommandStub(CatCertCommand):
     the loading of a certificate file.
     """
     def __init__(self, cert_pem):
-        CatCertCommand.__init__(self)
+        super(CatCertCommandStub, self).__init__()
         self.cert = create_from_pem(cert_pem)
 
     def _validate_options(self):
@@ -55,6 +55,7 @@ class CatCertCommandTests(SubManFixture):
     def test_omit_content_list(self):
         with Capture() as cap:
             command = CatCertCommandStub(certdata.ENTITLEMENT_CERT_V1_0)
+            print command, dir(command)
             command.main(["not_used.pem", "--no-content"])
         cert_output = cap.out
         self.assertTrue(cert_output.find("Content:\n") == -1,

@@ -266,6 +266,9 @@ class CliCommand(AbstractCLICommand):
 
         self.log = self._get_logger()
 
+        self.log.debug("init called %s", self.__class__.__name__)
+        self._add_options()
+
         if self.require_connection():
             self._add_proxy_options()
 
@@ -282,12 +285,16 @@ class CliCommand(AbstractCLICommand):
         self.proxy_hostname = None
         self.proxy_port = None
 
+        # these could be properties that do the require and return it
+        # that would delay there creation
         self.entitlement_dir = inj.require(inj.ENT_DIR)
         self.product_dir = inj.require(inj.PROD_DIR)
 
+        # only version command seems to use this, it could move there.
         self.client_versions = self._default_client_version()
         self.server_versions = self._default_server_version()
 
+        # also could be property or required where needed
         self.plugin_manager = inj.require(inj.PLUGIN_MANAGER)
 
         self.identity = inj.require(inj.IDENTITY)
@@ -299,6 +306,10 @@ class CliCommand(AbstractCLICommand):
         # Make sure the sorter is fresh (low footprint if it is)
         inj.require(inj.CERT_SORTER).force_cert_check()
         inj.require(inj.DBUS_IFACE).update()
+
+    def _add_options(self):
+        "Called from init, subclasses should override this to populate optparse options."""
+        pass
 
     def _add_url_options(self):
         """ Add options that allow the setting of the server URL."""
@@ -328,6 +339,7 @@ class CliCommand(AbstractCLICommand):
         log.info('%s', self.identity)
         return self.identity.is_valid()
 
+    # TODO: should be property
     def persist_server_options(self):
         """
         Whether to persist options like --serverurl or --baseurl to the
@@ -336,9 +348,11 @@ class CliCommand(AbstractCLICommand):
         """
         return False
 
+    # TODO: should be property
     def require_connection(self):
         return True
 
+    # TODO: should be attrs
     def _default_client_version(self):
         return {"subscription-manager": _("Unknown"),
                 "python-rhsm": _("Unknown")}
@@ -511,6 +525,8 @@ class UserPassCommand(CliCommand):
         self._username = None
         self._password = None
 
+    def _add_options(self):
+        super(UserPassCommand, self)._add_options()
         self.parser.add_option("--username", dest="username",
                                help=_("username to use when authorizing against the server"))
         self.parser.add_option("--password", dest="password",
@@ -551,13 +567,16 @@ class OrgCommand(UserPassCommand):
     """
     Abstract class for commands that require an org.
     """
+    org_help_text = _("specify organization")
+
     def __init__(self):
         super(OrgCommand, self).__init__()
         self._org = None
-        if not hasattr(self, "_org_help_text"):
-            self._org_help_text = _("specify organization")
+
+    def _add_options(self):
+        super(OrgCommand, self)._add_options()
         self.parser.add_option("--org", dest="org", metavar="ORG_KEY",
-            help=self._org_help_text)
+            help=self.org_help_text)
 
     @staticmethod
     def _get_org(org):
@@ -616,11 +635,8 @@ class IdentityCommand(UserPassCommand):
                   "request a new one")
     primary = False
 
-    def __init__(self):
-
-        #super(IdentityCommand, self).__init__("identity", shortdesc, False)
-        super(IdentityCommand, self).__init__()
-
+    def _add_options(self):
+        super(IdentityCommand, self)._add_options()
         self.parser.add_option("--regenerate", action='store_true',
                                help=_("request a new certificate be generated"))
         self.parser.add_option("--force", action='store_true',
@@ -699,6 +715,7 @@ class OwnersCommand(UserPassCommand):
     def __init__(self):
         super(OwnersCommand, self).__init__()
 
+        # inherit?
         self._add_url_options()
 
     def _do_command(self):
@@ -775,12 +792,10 @@ class AutohealCommand(CliCommand):
     name = "auto-attach"
     shortdesc = _("Set if subscriptions are attached on a schedule (default of daily)")
     primary = False
+    org_help_text = _("specify whether to enable or disable auto-attaching of subscriptions")
 
-    def __init__(self):
-        self.uuid = inj.require(inj.IDENTITY).uuid
-
-        self._org_help_text = _("specify whether to enable or disable auto-attaching of subscriptions")
-        super(AutohealCommand, self).__init__()
+    def _add_options(self):
+        super(AutohealCommand, self)._add_options()
 
         self.parser.add_option("--enable", dest="enable", action='store_true',
                 help=_("try to attach subscriptions for uncovered products each check-in"))
@@ -790,12 +805,8 @@ class AutohealCommand(CliCommand):
                 help=_("show the current auto-attach preference"))
 
     def _toggle(self, autoheal):
-        self.cp.updateConsumer(self.uuid, autoheal=autoheal)
+        self.cp.updateConsumer(self.identity.uuid, autoheal=autoheal)
         self._show(autoheal)
-
-    def _validate_options(self):
-        if not self.uuid:
-            self.assert_should_be_registered()
 
     def _show(self, autoheal):
         if autoheal:
@@ -804,10 +815,12 @@ class AutohealCommand(CliCommand):
             print _("Auto-attach preference: disabled")
 
     def _do_command(self):
+        self.assert_should_be_registered()
+
         self._validate_options()
 
         if not self.options.enable and not self.options.disable:
-            self._show(self.cp.getConsumer(self.uuid)['autoheal'])
+            self._show(self.cp.getConsumer(self.identity.uuid)['autoheal'])
         else:
             self._toggle(self.options.enable or False)
 
@@ -816,12 +829,17 @@ class ServiceLevelCommand(OrgCommand):
     name = "service-level"
     shortdesc = _("Manage service levels for this system")
     primary = False
+    org_help_text = _("specify an organization when listing available service levels using the organization key, only used with --list")
 
     def __init__(self):
-        self._org_help_text = _("specify an organization when listing available service levels using the organization key, only used with --list")
         super(ServiceLevelCommand, self).__init__()
 
+        # FIXME: move to base init and an attr
         self._add_url_options()
+
+    def _add_options(self):
+        super(ServiceLevelCommand, self)._add_options()
+
         self.parser.add_option("--show", dest="show", action='store_true',
                 help=_("show this system's current service level"))
         self.parser.add_option("--list", dest="list", action='store_true',
@@ -831,8 +849,6 @@ class ServiceLevelCommand(OrgCommand):
         self.parser.add_option("--unset", dest="unset",
                                action='store_true',
                                help=_("unset the service level for this system"))
-
-        self.identity = inj.require(inj.IDENTITY)
 
     def _set_service_level(self, service_level):
         consumer = self.cp.getConsumer(self.identity.uuid)
@@ -865,6 +881,9 @@ class ServiceLevelCommand(OrgCommand):
 
     def _do_command(self):
         self._validate_options()
+
+        self.assert_should_be_registered()
+
         try:
             # If we have a username/password, we're going to use that, otherwise
             # we'll use the identity certificate. We already know one or the other
@@ -952,7 +971,12 @@ class RegisterCommand(UserPassCommand):
 
         super(RegisterCommand, self).__init__()
 
+        # FIXME: add in base init
         self._add_url_options()
+
+    def _add_options(self):
+        super(RegisterCommand, self)._add_options()
+
         self.parser.add_option("--baseurl", dest="base_url",
                               default=None, help=_("base URL for content in form of https://hostname:port/prefix"))
         self.parser.add_option("--type", dest="consumertype", default="system", metavar="UNITTYPE",
@@ -1266,8 +1290,8 @@ class RedeemCommand(CliCommand):
     shortdesc = _("Attempt to redeem a subscription for a preconfigured system")
     primary = False
 
-    def __init__(self):
-        super(RedeemCommand, self).__init__()
+    def _add_options(self):
+        super(RedeemCommand, self)._add_options()
 
         self.parser.add_option("--email", dest="email", action='store',
                                help=_("email address to notify when "
@@ -1285,9 +1309,9 @@ class RedeemCommand(CliCommand):
         """
         Executes the command.
         """
-        self.assert_should_be_registered()
-
         self._validate_options()
+
+        self.assert_should_be_registered()
 
         try:
             # FIXME: why just facts and package profile update here?
@@ -1319,8 +1343,8 @@ class ReleaseCommand(CliCommand):
     shortdesc = _("Configure which operating system release to use")
     primary = True
 
-    def __init__(self):
-        super(ReleaseCommand, self).__init__()
+    def _add_options(self):
+        super(ReleaseCommand, self)._add_options()
 
         self.parser.add_option("--show", dest="show", action="store_true",
                                help=_("shows current release setting; default command"))
@@ -1397,12 +1421,8 @@ class AttachCommand(CliCommand):
     shortdesc = _("Attach a specified subscription to the registered system")
     primary = True
 
-    def __init__(self):
-        super(AttachCommand, self).__init__()
-
-        self.product = None
-        self.substoken = None
-        self.auto_attach = True
+    def _add_options(self):
+        super(AttachCommand, self)._add_options()
         self.parser.add_option("--pool", dest="pool", action='append',
                                help=_("the ID of the pool to attach (can be specified more than once)"))
         self.parser.add_option("--quantity", dest="quantity",
@@ -1459,14 +1479,16 @@ class AttachCommand(CliCommand):
         """
         Executes the command.
         """
-        self.assert_should_be_registered()
         self._validate_options()
 
+        self.assert_should_be_registered()
+
+        auto_attach = True
         # --pool or --file turns off default auto attach
         if self.options.pool or self.options.file:
-            self.auto_attach = False
+            auto_attach = False
 
-        # TODO: change to if self.auto_attach: else: pool/file stuff
+        # TODO: change to if auto_attach: else: pool/file stuff
         try:
             cert_action_client = ActionClient()
             cert_action_client.update()
@@ -1538,7 +1560,7 @@ class AttachCommand(CliCommand):
                 print _('Entitlement Certificate(s) update failed due to the following reasons:')
                 for e in report.exceptions():
                     print '\t-', str(e)
-            elif self.auto_attach:
+            elif auto_attach:
                 if not products_installed:
                     return_code = 1
                 else:
@@ -1566,8 +1588,8 @@ class RemoveCommand(CliCommand):
     shortdesc = _("Remove all or specific subscriptions from this system")
     primary = True
 
-    def __init__(self):
-        super(RemoveCommand, self).__init__()
+    def _add_options(self):
+        super(RemoveCommand, self)._add_options()
         self.parser.add_option("--serial", action='append', dest="serials", metavar="SERIAL",
                        help=_("certificate serial number to remove (can be specified more than once)"))
         self.parser.add_option("--all", dest="all", action="store_true",
@@ -1672,9 +1694,8 @@ class FactsCommand(CliCommand):
     shortdesc = _("View or update the detected system information")
     primary = False
 
-    def __init__(self):
-        super(FactsCommand, self).__init__()
-
+    def _add_options(self):
+        super(FactsCommand, self)._add_options()
         self.parser.add_option("--list", action="store_true",
                                help=_("list known facts for this system"))
         self.parser.add_option("--update", action="store_true",
@@ -1720,9 +1741,8 @@ class ImportCertCommand(CliCommand):
     shortdesc = _("Import certificates which were provided outside of the tool")
     primary = False
 
-    def __init__(self):
-        super(ImportCertCommand, self).__init__()
-
+    def _add_options(self):
+        super(ImportCertCommand, self)._add_options()
         self.parser.add_option("--certificate", action="append", dest="certificate_file",
                                help=_("certificate file to import (can be specified more than once)"))
 
@@ -1784,8 +1804,8 @@ class PluginsCommand(CliCommand):
     shortdesc = _("View and configure subscription-manager plugins")
     primary = False
 
-    def __init__(self):
-        super(PluginsCommand, self).__init__()
+    def _add_options(self):
+        super(PluginsCommand, self)._add_options()
 
         SM = "subscription-manager"
         self.parser.add_option("--list", action="store_true",
@@ -1840,8 +1860,8 @@ class ReposCommand(CliCommand):
     shortdesc = _("List the repositories which this system is entitled to use")
     primary = False
 
-    def __init__(self):
-        super(ReposCommand, self).__init__()
+    def _add_options(self):
+        super(ReposCommand, self)._add_options()
 
         def repo_callback(option, opt, repoid, parser):
             """
@@ -2114,10 +2134,8 @@ class ListCommand(CliCommand):
     shortdesc = _("List subscription and product information for this system")
     primary = True
 
-    def __init__(self):
-        super(ListCommand, self).__init__()
-        self.available = None
-        self.consumed = None
+    def _add_options(self):
+        super(ListCommand, self)._add_options()
         self.parser.add_option("--installed", action='store_true', help=_("list shows those products which are installed (default)"))
         self.parser.add_option("--available", action='store_true',
                                help=_("show those subscriptions which are available"))
@@ -2408,8 +2426,8 @@ class OverrideCommand(CliCommand):
     shortdesc = _("Manage custom content repository settings")
     primary = False
 
-    def __init__(self):
-        super(OverrideCommand, self).__init__()
+    def _add_options(self):
+        super(OverrideCommand, self)._add_options()
         self.parser.add_option("--repo", dest="repos", action="append", metavar="REPOID",
             help=_("repository to modify (can be specified more than once)"))
         self.parser.add_option("--remove", dest="removals", action="append", metavar="NAME",
@@ -2545,8 +2563,8 @@ class StatusCommand(CliCommand):
     shortdesc = _("Show status information for this system's subscriptions and products")
     primary = True
 
-    def __init__(self):
-        super(StatusCommand, self).__init__()
+    def _add_options(self):
+        super(StatusCommand, self)._add_options()
         self.parser.add_option("--ondate", dest="on_date",
                                 help=(_("future date to check status on, defaults to today's date (example: %s)")
                                       % strftime("%Y-%m-%d", localtime())))

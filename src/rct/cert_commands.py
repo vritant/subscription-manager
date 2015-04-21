@@ -30,9 +30,12 @@ _ = gettext.gettext
 
 class RCTCertCommand(RCTCliCommand):
 
-    def __init__(self, name="cli", aliases=None, shortdesc=None, primary=False):
-        RCTCliCommand.__init__(self, name=name, aliases=aliases,
-                shortdesc=shortdesc, primary=primary)
+    def __init__(self):
+        super(RCTCertCommand, self).__init__()
+        self._add_options()
+
+    def _add_options(self):
+        pass
 
     def _get_usage(self):
         return _("%%prog %s [OPTIONS] CERT_FILE") % self.name
@@ -56,11 +59,13 @@ class RCTCertCommand(RCTCliCommand):
 
 
 class CatCertCommand(RCTCertCommand):
+    name = "cat-cert"
+    aliases = ['cc']
+    shortdesc = _("Print certificate information"),
+    primary = True
 
-    def __init__(self):
-        RCTCliCommand.__init__(self, name="cat-cert", aliases=['cc'],
-                               shortdesc=_("Print certificate information"),
-                               primary=True)
+    def _add_options(self):
+        super(CatCertCommand, self)._add_options()
 
         self.parser.add_option("--no-products", dest="no_products", action="store_true",
                                help=_("do not show the cert's product information"))
@@ -77,11 +82,10 @@ class CatCertCommand(RCTCertCommand):
 
 
 class StatCertCommand(RCTCertCommand):
-
-    def __init__(self):
-        RCTCliCommand.__init__(self, name="stat-cert", aliases=['sc'],
-                               shortdesc=_("Print certificate statistics and sizes"),
-                               primary=True)
+    name = "stat-cert"
+    aliases = ['sc']
+    shortdesc = _("Print certificate statistics and sizes"),
+    primary = True
 
     def _do_command(self):
         cert = self._create_cert()

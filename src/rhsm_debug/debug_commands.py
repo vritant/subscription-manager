@@ -45,12 +45,12 @@ KEY_IGNORE_PATS = ['*key.pem']
 
 
 class SystemCommand(CliCommand):
+    name = "system"
+    shortdesc = _("Assemble system information as a tar file or directory"),
+    primary = True
 
-    def __init__(self, name="system",
-                 shortdesc=_("Assemble system information as a tar file or directory"),
-                 primary=True):
-        CliCommand.__init__(self, name=name, shortdesc=shortdesc, primary=primary)
-
+    def _add_options(self):
+        super(SystemCommand, self)._add_options()
         self.parser.add_option("--destination", dest="destination",
                                default="/tmp", help=_("the destination location of the result; default is /tmp"))
         # default is to build an archive, this skips the archive and clean up,

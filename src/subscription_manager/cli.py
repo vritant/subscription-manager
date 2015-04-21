@@ -77,10 +77,11 @@ class CLI(object):
         self.cli_commands = {}
         self.cli_aliases = {}
         for clazz in command_classes:
-            if clazz.name != "cli":
-                self.cli_commands[clazz.name] = clazz
-                for alias in clazz.aliases:
-                    self.cli_aliases[alias] = clazz
+            cmd = clazz()
+            if cmd.name != "cli":
+                self.cli_commands[clazz.name] = cmd
+                for alias in cmd.aliases:
+                    self.cli_aliases[alias] = cmd
 
     def _default_command(self):
         self._usage()
@@ -143,11 +144,11 @@ class CLI(object):
         return cmd_class
 
     def main(self, args):
-        cmd_class = self._find_best_match(args)
+        cmd = self._find_best_match(args)
         if len(args) < 1:
             self._default_command()
             sys.exit(0)
-        if not cmd_class:
+        if not cmd:
             self._usage()
             # Allow for a 0 return code if just calling --help
             return_code = 1
@@ -156,7 +157,7 @@ class CLI(object):
             sys.exit(return_code)
 
         try:
-            return cmd_class().main(args=args)
+            return cmd.main(args=args)
         except InvalidCLIOptionError, error:
             print error
 

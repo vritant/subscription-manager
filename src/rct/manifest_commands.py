@@ -132,10 +132,6 @@ class RCTManifestCommand(RCTCliCommand):
 
     INNER_FILE = "consumer_export.zip"
 
-    def __init__(self, name="cli", aliases=None, shortdesc=None, primary=False):
-        RCTCliCommand.__init__(self, name=name, aliases=aliases,
-                shortdesc=shortdesc, primary=primary)
-
     def _get_usage(self):
         return _("%%prog %s [OPTIONS] MANIFEST_FILE") % self.name
 
@@ -166,11 +162,10 @@ class RCTManifestCommand(RCTCliCommand):
 
 
 class CatManifestCommand(RCTManifestCommand):
-
-    def __init__(self):
-        RCTManifestCommand.__init__(self, name="cat-manifest", aliases=['cm'],
-                               shortdesc=_("Print manifest information"),
-                               primary=True)
+    name = "cat-manifest"
+    aliases = ['cm']
+    shortdesc = _("Print manifest information"),
+    primary = True
 
     def _print_section(self, title, items, indent=1, whitespace=True):
         # Allow a bit of customization of the tabbing
@@ -281,11 +276,13 @@ class CatManifestCommand(RCTManifestCommand):
 
 
 class DumpManifestCommand(RCTManifestCommand):
+    name = "dump-manifest"
+    aliases = ['dm']
+    shortdesc = _("Dump the contents of a manifest")
+    primary = True
 
-    def __init__(self):
-        RCTManifestCommand.__init__(self, name="dump-manifest", aliases=['dm'],
-                               shortdesc=_("Dump the contents of a manifest"),
-                               primary=True)
+    def _add_options(self):
+        RCTManifestCommand._add_options()
 
         self.parser.add_option("--destination", dest="destination",
                                help=_("directory to extract the manifest to"))
