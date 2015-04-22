@@ -285,9 +285,6 @@ class CliCommand(AbstractCLICommand):
         self.proxy_hostname = None
         self.proxy_port = None
 
-        # also could be property or required where needed
-        self.plugin_manager = inj.require(inj.PLUGIN_MANAGER)
-
         self.identity = inj.require(inj.IDENTITY)
 
     @property
@@ -297,6 +294,10 @@ class CliCommand(AbstractCLICommand):
     @property
     def product_dir(self):
         return inj.require(inj.PROD_DIR)
+
+    @property
+    def plugin_manager(self):
+        return inj.require(inj.PLUGIN_MANAGER)
 
     def _get_logger(self):
         return logging.getLogger('rhsm-app.%s.%s' % (self.__module__, self.__class__.__name__))
