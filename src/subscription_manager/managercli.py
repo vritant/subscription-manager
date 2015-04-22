@@ -290,9 +290,13 @@ class CliCommand(AbstractCLICommand):
         self.entitlement_dir = inj.require(inj.ENT_DIR)
         self.product_dir = inj.require(inj.PROD_DIR)
 
-        # only version command seems to use this, it could move there.
-        self.client_versions = self._default_client_version()
-        self.server_versions = self._default_server_version()
+
+        # We log these
+        self.client_versions = {"subscription-manager": _("Unknown"),
+                                 "python-rhsm": _("Unknown")}
+
+        self.server_versions = {"candlepin": _("Unknown"),
+                                 "server-type": _("Unknown")}
 
         # also could be property or required where needed
         self.plugin_manager = inj.require(inj.PLUGIN_MANAGER)
@@ -351,15 +355,6 @@ class CliCommand(AbstractCLICommand):
     # TODO: should be property
     def require_connection(self):
         return True
-
-    # TODO: should be attrs
-    def _default_client_version(self):
-        return {"subscription-manager": _("Unknown"),
-                "python-rhsm": _("Unknown")}
-
-    def _default_server_version(self):
-        return {"candlepin": _("Unknown"),
-                "server-type": _("Unknown")}
 
     def log_client_version(self):
         self.client_versions = get_client_versions()
@@ -1036,6 +1031,7 @@ class RegisterCommand(UserPassCommand):
         Executes the command.
         """
 
+        # FIXME: redundant
         self.log_client_version()
 
         # Always warn the user if registered to old RHN/Spacewalk
