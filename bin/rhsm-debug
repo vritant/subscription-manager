@@ -21,6 +21,7 @@ if __name__ != '__main__':
 import sys
 sys.setdefaultencoding('utf-8')
 import site
+import logging
 import os
 
 # Ensure that the RHSM libs are on the path.
@@ -33,6 +34,8 @@ configure_i18n()
 
 from subscription_manager import logutil
 logutil.init_logger()
+
+log = logging.getLogger("rhsm-app.rhsm-debug")
 
 from rhsm_debug.cli import RhsmDebugCLI
 from subscription_manager.cli import system_exit
@@ -57,13 +60,13 @@ if os.getuid() != 0:
     sys.exit(8)
 
 
-def main():
-    return RhsmDebugCLI().main()
+def main(args):
+    return RhsmDebugCLI().main(args)
 
 
 if __name__ == '__main__':
     try:
-        sys.exit(abs(main() or 0))
+        sys.exit(abs(main(args=sys.argv[1:]) or 0))
     except SystemExit, e:
         #this is a non-exceptional exception thrown by Python 2.4, just
         #re-raise, bypassing handle_exception
@@ -79,5 +82,6 @@ if __name__ == '__main__':
         # rhsm-debug can be invoked from sosreport/libreport/abrt, so
         # letting exceptions all the up to the system excepthook
         # can cause chaos (abrt handler gets called, invokes sosreport, etc)
+        log.exception(e)
         sys.stderr.write("Error collecting rhsm-debug information: %s\n" % e)
         sys.exit(-1)
