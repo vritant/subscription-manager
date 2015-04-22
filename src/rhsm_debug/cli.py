@@ -21,4 +21,4 @@ class RhsmDebugCLI(CLI):
 
     def __init__(self):
         commands = [SystemCommand]
-        CLI.__init__(self, commands)
+        super(RhsmDebugCLI, self).__init__(commands)

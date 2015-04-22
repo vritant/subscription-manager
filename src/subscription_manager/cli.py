@@ -14,13 +14,17 @@
 #
 
 import gettext
+import logging
 import os
 import sys
 
 from subscription_manager.printing_utils import columnize, _echo
 from subscription_manager.i18n_optparse import OptionParser, WrappedIndentedHelpFormatter
+from subscription_manager import utils
 
 _ = gettext.gettext
+
+log = logging.getLogger("rhsm-app." + __name__)
 
 
 class InvalidCLIOptionError(Exception):
@@ -73,6 +77,11 @@ class AbstractCLICommand(object):
 class CLI(object):
 
     def __init__(self, command_classes=None):
+
+        # log client versions early, server versions
+        # are logged later if we detect we are using the network
+        self.log_client_versions()
+
         command_classes = command_classes or []
         self.cli_commands = {}
         self.cli_aliases = {}
@@ -82,6 +91,10 @@ class CLI(object):
                 self.cli_commands[clazz.name] = cmd
                 for alias in cmd.aliases:
                     self.cli_aliases[alias] = cmd
+
+    def log_client_versions(self):
+        self.client_versions = utils.get_client_versions()
+        log.info("Client Versions: %s" % self.client_versions)
 
     def _default_command(self):
         self._usage()

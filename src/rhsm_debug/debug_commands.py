@@ -27,6 +27,8 @@ import subscription_manager.injection as inj
 import subscription_manager.managercli as managercli
 from subscription_manager.managercli import CliCommand
 from subscription_manager.cli import InvalidCLIOptionError, system_exit
+from subscription_manager import utils
+
 from rhsm import ourjson as json
 from rhsm.config import initConfig
 
@@ -206,10 +208,11 @@ class SystemCommand(CliCommand):
         return datetime.now().strftime("%Y%m%d-%f")
 
     def _get_version_info(self):
+        client_versions = utils.get_client_versions()
         return {"server type": self.server_versions["server-type"],
                 "subscription management server": self.server_versions["candlepin"],
-                "subscription-manager": self.client_versions["subscription-manager"],
-                "python-rhsm": self.client_versions["python-rhsm"]}
+                "subscription-manager": client_versions["subscription-manager"],
+                "python-rhsm": client_versions["python-rhsm"]}
 
     def _write_flat_file(self, content_path, filename, content):
         path = os.path.join(content_path, filename)
