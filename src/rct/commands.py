@@ -21,7 +21,7 @@ _ = gettext.gettext
 
 
 class RCTCliCommand(AbstractCLICommand):
-    FILE_ARG_IDX = 0
+    FILE_ARG_IDX = 1
 
     def main(self, args=None):
         # In testing we sometimes specify args, otherwise use the default:

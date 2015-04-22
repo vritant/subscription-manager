@@ -37,11 +37,11 @@ logutil.init_logger()
 import gettext
 _ = gettext.gettext
 
-from rct.cli import RctCLI
+from rct import cli
 
 
 def main(args):
-    return RctCLI().main(args=args)
+    return cli.RctCLI().main(args=args)
 
 
 if __name__ == '__main__':
