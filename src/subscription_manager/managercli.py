@@ -285,15 +285,18 @@ class CliCommand(AbstractCLICommand):
         self.proxy_hostname = None
         self.proxy_port = None
 
-        # these could be properties that do the require and return it
-        # that would delay there creation
-        self.entitlement_dir = inj.require(inj.ENT_DIR)
-        self.product_dir = inj.require(inj.PROD_DIR)
-
         # also could be property or required where needed
         self.plugin_manager = inj.require(inj.PLUGIN_MANAGER)
 
         self.identity = inj.require(inj.IDENTITY)
+
+    @property
+    def entitlement_dir(self):
+        return inj.require(inj.ENT_DIR)
+
+    @property
+    def product_dir(self):
+        return inj.require(inj.PROD_DIR)
 
     def _get_logger(self):
         return logging.getLogger('rhsm-app.%s.%s' % (self.__module__, self.__class__.__name__))
