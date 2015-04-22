@@ -26,7 +26,6 @@ from optparse import OptionValueError
 import os
 import re
 import socket
-import sys
 from time import localtime, strftime, strptime
 
 from M2Crypto import X509
@@ -261,6 +260,15 @@ def get_installed_product_status(product_directory, entitlement_directory, uep, 
 class CliCommand(AbstractCLICommand):
     """ Base class for all sub-commands. """
 
+    require_connection = True
+
+    """Whether to persist options like --serverurl or --baseurl to the
+    rhsm.conf file when used.  For modules like register, we want this to
+    be true.  For modules like orgs or environments, we want false."""
+    persist_server_options = False
+
+    url_options = False
+
     def __init__(self):
         AbstractCLICommand.__init__(self)
 
@@ -269,8 +277,11 @@ class CliCommand(AbstractCLICommand):
         self.log.debug("init called %s", self.__class__.__name__)
         self._add_options()
 
-        if self.require_connection():
+        if self.require_connection:
             self._add_proxy_options()
+
+        if self.url_options:
+            self._add_url_options()
 
         self.server_url = None
 
@@ -336,27 +347,13 @@ class CliCommand(AbstractCLICommand):
             system_exit(ERR_NOT_REGISTERED_CODE, ERR_NOT_REGISTERED_MSG)
 
     def is_registered(self):
-        #self.identity = inj.require(inj.IDENTITY)
         log.info('%s', self.identity)
         return self.identity.is_valid()
-
-    # TODO: should be property
-    def persist_server_options(self):
-        """
-        Whether to persist options like --serverurl or --baseurl to the
-        rhsm.conf file when used.  For modules like register, we want this to
-        be true.  For modules like orgs or environments, we want false.
-        """
-        return False
-
-    # TODO: should be property
-    def require_connection(self):
-        return True
 
     def log_server_version(self):
         # can't check the server version without a connection
         # and valid registration
-        if not self.require_connection():
+        if not self.require_connection:
             return
 
         # get_server_versions needs to handle any exceptions
@@ -365,32 +362,76 @@ class CliCommand(AbstractCLICommand):
         log.info("Server Versions: %s" % self.server_versions)
 
     def main(self, args=None):
-        log.debug("start args=%s", args)
         args = args or []
         # TODO: For now, we disable the CLI entirely. We may want to allow some commands in the future.
         if rhsm.config.in_container():
             system_exit(os.EX_CONFIG, _("subscription-manager is disabled when running inside a container. Please refer to your host system for subscription management.\n"))
 
-        config_changed = False
+        self.config_changed = False
 
-        log.debug("%s args=%s", self, args)
-        log.debug("%s sys.argv %s", self, sys.argv)
         (self.options, self.args) = self.parser.parse_args(args)
 
         # we dont need argv[0] in this list...
-        log.debug("self.args=%s", self.args)
-        log.debug("self.options=%s", self.options)
         self.args = self.args[1:]
+
         # check for unparsed arguments
         if self.args:
             for arg in self.args:
                 print _("cannot parse argument: %s") % arg
             system_exit(os.EX_USAGE)
 
+        self._set_connection_options()
+
+        # do the work, catch most common errors here:
+        try:
+            return_code = self._do_command()
+
+            # Only persist the config changes if there was no exception
+            if self.config_changed and self.persist_server_options:
+                cfg.save()
+
+            if return_code is not None:
+                return return_code
+        except X509.X509Error, e:
+            log.error(e)
+            print _('System certificates corrupted. Please reregister.')
+
+    def _set_connection_options(self):
+        # we can skip all of this if we dont require_connection and
+        # dont persist_server_info
+
+        if not self.require_connection:
+            self.cp = None
+            return
+
+        # TODO: property?
+        self.cp_provider = inj.require(inj.CP_PROVIDER)
+        self.cp = self.cp_provider.get_consumer_auth_cp()
+
+        # no auth cp for get / (resources) and
+        # get /status (status and versions)
+        self.no_auth_cp = self.cp_provider.get_no_auth_cp()
+
+        # TODO: ugly way to try to skip some of the following, likely
+        # not worth it
+        net_options = ('insecure', 'server_url', 'base_url', 'proxy_url',
+                       'proxy_port', 'proxy_user', 'proxy_password')
+        active_options = []
+        for net_option in net_options:
+            if hasattr(self.options, net_option) and getattr(self.options, net_option):
+                active_options.append(net_option)
+        if not active_options:
+            return
+
         if hasattr(self.options, "insecure") and self.options.insecure:
             cfg.set("server", "insecure", "1")
-            config_changed = True
 
+            # TODO: this would be useful if the cfg object tracked this itself
+            self.config_changed = True
+
+        # self.options.serverurl/baseurl/etc are only checked for the
+        # command classes with those options, which is basically just
+        # RegisterCommand
         if hasattr(self.options, "server_url") and self.options.server_url:
             try:
                 (self.server_hostname,
@@ -399,7 +440,9 @@ class CliCommand(AbstractCLICommand):
             except ServerUrlParseError, e:
                 print _("Error parsing serverurl:")
                 handle_exception("Error parsing serverurl:", e)
+
             # this trys to actually connect to the server and ping it
+            # TODO: we should skip this on require_connection = False
             try:
                 if not is_valid_server_info(self.server_hostname, self.server_port, self.server_prefix):
                     system_exit(os.EX_UNAVAILABLE, _("Unable to reach the server at %s:%s%s") % (
@@ -413,9 +456,11 @@ class CliCommand(AbstractCLICommand):
             cfg.set("server", "hostname", self.server_hostname)
             cfg.set("server", "port", self.server_port)
             cfg.set("server", "prefix", self.server_prefix)
+
             if self.server_port:
                 self.server_port = int(self.server_port)
-            config_changed = True
+
+            self.config_changed = True
 
         if hasattr(self.options, "base_url") and self.options.base_url:
             try:
@@ -429,7 +474,7 @@ class CliCommand(AbstractCLICommand):
             cfg.set("rhsm", "baseurl", format_baseurl(baseurl_server_hostname,
                                                       baseurl_server_port,
                                                       baseurl_server_prefix))
-            config_changed = True
+            self.config_changed = True
 
         # support foo.example.com:3128 format
         if hasattr(self.options, "proxy_url") and self.options.proxy_url:
@@ -465,39 +510,18 @@ class CliCommand(AbstractCLICommand):
         if self.server_prefix:
             connection_info['handler'] = self.server_prefix
 
-        self.cp_provider = inj.require(inj.CP_PROVIDER)
         self.cp_provider.set_connection_info(**connection_info)
 
-        if self.require_connection():
-            # make sure we pass in the new server info, otherwise we
-            # we use the defaults from connection module init
-            # we've set self.proxy* here, so we'll use them if they
-            # are set
-            self.cp = self.cp_provider.get_consumer_auth_cp()
+        # make sure we pass in the new server info, otherwise we
+        # we use the defaults from connection module init
+        # we've set self.proxy* here, so we'll use them if they
+        # are set
+        self.cp = self.cp_provider.get_consumer_auth_cp()
 
-            # no auth cp for get / (resources) and
-            # get /status (status and versions)
-            self.no_auth_cp = self.cp_provider.get_no_auth_cp()
-            self.log_server_version()
-
-            self.entcertlib = EntCertActionInvoker()
-
-        else:
-            self.cp = None
-
-        # do the work, catch most common errors here:
-        try:
-            return_code = self._do_command()
-
-            # Only persist the config changes if there was no exception
-            if config_changed and self.persist_server_options():
-                cfg.save()
-
-            if return_code is not None:
-                return return_code
-        except X509.X509Error, e:
-            log.error(e)
-            print _('System certificates corrupted. Please reregister.')
+        # no auth cp for get / (resources) and
+        # get /status (status and versions)
+        self.no_auth_cp = self.cp_provider.get_no_auth_cp()
+        self.log_server_version()
 
 
 class UserPassCommand(CliCommand):
@@ -581,6 +605,7 @@ class CleanCommand(CliCommand):
     name = "clean"
     shortdesc = _("Remove all local system and subscription data without affecting the server")
     primary = False
+    require_connection = False
 
     def _do_command(self):
         managerlib.clean_all_data(False)
@@ -591,9 +616,6 @@ class CleanCommand(CliCommand):
         # We have new credentials, restart virt-who
         restart_virt_who()
 
-    def require_connection(self):
-        return False
-
 
 class RefreshCommand(CliCommand):
     name = "refresh"
@@ -603,7 +625,8 @@ class RefreshCommand(CliCommand):
     def _do_command(self):
         self.assert_should_be_registered()
         try:
-            self.entcertlib.update()
+
+            EntCertActionInvoker().update()
             log.info("Refreshed local data")
             print (_("All local data refreshed"))
         except connection.RestlibException, re:
@@ -698,12 +721,7 @@ class OwnersCommand(UserPassCommand):
     name = "orgs"
     shortdesc = _("Display the organizations against which a user can register a system")
     primary = False
-
-    def __init__(self):
-        super(OwnersCommand, self).__init__()
-
-        # inherit?
-        self._add_url_options()
+    url_options = True
 
     def _do_command(self):
 
@@ -736,12 +754,8 @@ class EnvironmentsCommand(OrgCommand):
     name = "environments"
     shortdesc = _("Display the environments available for a user")
     primary = False
-
-    def __init__(self):
-        self._org_help_text = _("specify organization for environment list, using organization key")
-
-        super(EnvironmentsCommand, self).__init__()
-        self._add_url_options()
+    url_options = True
+    org_help_text = _("specify organization for environment list, using organization key")
 
     def _get_enviornments(self, org):
         return self.cp.getEnvironmentList(org)
@@ -817,12 +831,7 @@ class ServiceLevelCommand(OrgCommand):
     shortdesc = _("Manage service levels for this system")
     primary = False
     org_help_text = _("specify an organization when listing available service levels using the organization key, only used with --list")
-
-    def __init__(self):
-        super(ServiceLevelCommand, self).__init__()
-
-        # FIXME: move to base init and an attr
-        self._add_url_options()
+    url_options = True
 
     def _add_options(self):
         super(ServiceLevelCommand, self)._add_options()
@@ -954,12 +963,11 @@ class RegisterCommand(UserPassCommand):
     shortdesc = get_branding().CLI_REGISTER
     primary = True
 
-    def __init__(self):
+    """If the user provides a --serverurl or --baseurl, we want to persist it
+    to the config file so that future commands will use the value."""
+    persist_server_options = True
 
-        super(RegisterCommand, self).__init__()
-
-        # FIXME: add in base init
-        self._add_url_options()
+    url_options = True
 
     def _add_options(self):
         super(RegisterCommand, self)._add_options()
@@ -1010,13 +1018,6 @@ class RegisterCommand(UserPassCommand):
             system_exit(os.EX_USAGE, _("Error: Must use --auto-attach with --servicelevel."))
         elif (self.options.activation_keys and not self.options.org):
             system_exit(os.EX_USAGE, _("Error: Must provide --org with activation keys."))
-
-    def persist_server_options(self):
-        """
-        If the user provides a --serverurl or --baseurl, we want to persist it
-        to the config file so that future commands will use the value.
-        """
-        return True
 
     def _do_command(self):
         """
@@ -1141,7 +1142,7 @@ class RegisterCommand(UserPassCommand):
             log.info("System registered, updating entitlements if needed")
             # update certs, repos, and caches.
             # FIXME: aside from the overhead, should this be cert_action_client.update?
-            self.entcertlib.update()
+            EntCertActionInvoker().update()
 
         subscribed = 0
         if (self.options.activation_keys or self.autoattach):
@@ -1539,7 +1540,7 @@ class AttachCommand(CliCommand):
                                   service_level=self.options.service_level)
             report = None
             if cert_update:
-                report = self.entcertlib.update()
+                report = EntCertActionInvoker().update()
 
             if report and report.exceptions():
                 print _('Entitlement Certificate(s) update failed due to the following reasons:')
@@ -1635,7 +1636,7 @@ class RemoveCommand(CliCommand):
                             print "   %s" % fail
                     if not success:
                         return_code = 1
-                self.entcertlib.update()
+                EntCertActionInvoker().update()
             except connection.RestlibException, re:
                 log.error(re)
                 system_exit(os.EX_SOFTWARE, re.msg)
@@ -1725,6 +1726,7 @@ class ImportCertCommand(CliCommand):
     name = "import"
     shortdesc = _("Import certificates which were provided outside of the tool")
     primary = False
+    require_connection = False
 
     def _add_options(self):
         super(ImportCertCommand, self)._add_options()
@@ -1780,14 +1782,12 @@ class ImportCertCommand(CliCommand):
 
         return return_code
 
-    def require_connection(self):
-        return False
-
 
 class PluginsCommand(CliCommand):
     name = "plugins"
     shortdesc = _("View and configure subscription-manager plugins")
     primary = False
+    require_connection = False
 
     def _add_options(self):
         super(PluginsCommand, self)._add_options()
@@ -1809,9 +1809,6 @@ class PluginsCommand(CliCommand):
                 self.options.listslots or
                  self.options.listhooks):
             self.options.list = True
-
-    def require_connection(self):
-        return False
 
     def _list_plugins(self):
         for plugin_class in self.plugin_manager.get_plugins().values():
@@ -2017,6 +2014,7 @@ class ConfigCommand(CliCommand):
     name = "config"
     shortdesc = _("List, set, or remove the configuration parameters in use by this system")
     primary = False
+    require_connection = False
 
     def __init__(self):
         super(ConfigCommand, self).__init__()
@@ -2109,9 +2107,6 @@ class ConfigCommand(CliCommand):
                     if not value == 'None':
                         cfg.set(section, name, value)
             cfg.save()
-
-    def require_connection(self):
-        return False
 
 
 class ListCommand(CliCommand):
@@ -2461,7 +2456,7 @@ class OverrideCommand(CliCommand):
 
         # update entitlement certificates if necessary. If we do have new entitlements
         # CertLib.update() will call RepoActionInvoker.update().
-        self.entcertlib.update()
+        EntCertActionInvoker().update()
         # make sure the EntitlementDirectory singleton is refreshed
         self._request_validity_check()
 
