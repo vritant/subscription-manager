@@ -22,7 +22,7 @@ class RctCLI(CLI):
 
     def __init__(self):
         commands = [CatCertCommand, CatManifestCommand, StatCertCommand, DumpManifestCommand]
-        super(RctCLI, self).__init__(self, commands)
+        super(RctCLI, self).__init__(commands)
 
 
 def xstr(value):
