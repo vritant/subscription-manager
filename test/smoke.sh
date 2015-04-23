@@ -11,7 +11,7 @@ WRAPPER=""
 #SM="SUBMAN_DEBUG=1 bin/subscription-manager"
 #SM="subscription-manager"
 SM="PYTHONPATH=../python-rhsm/src/:src/ bin/subscription-manager"
-
+RCT="PYTHONPATH=../python-rhsm/src/:src/ bin/rct"
 
 # where to store backup copies of rhsm related files
 # NOTE: we currently dont restore them
@@ -60,6 +60,16 @@ run_sm () {
     echo "===================="
 }
 
+run_rct () {
+    echo "===================="
+    echo "running: ${RCT} ${GLOBAL_ARGS} $*"
+    echo
+    sudo ${WRAPPER} ${RCT} ${GLOBAL_ARGS} $*
+    RETURN_CODE=$?
+    echo "return code: ${RETURN_CODE}"
+    echo "===================="
+}
+
 # basics
 run_sm unregister
 run_sm register --username "${USERNAME}" --password "${PASSWORD}" --org "${ORG}" --force
@@ -69,6 +79,9 @@ run_sm service-level
 run_sm repos
 run_sm subscribe --auto
 run_sm list --consumed
+run_rct cat-cert /etc/pki/entitlement/*.pem
+run_rct cat-cert /etc/pki/consumer/cert.pem
+run_rct cat-cert /etc/pki/product/*.pem
 run_sm repos
 
 # others...
@@ -89,6 +102,7 @@ run_sm register --activationkey "${ACTIVATION_KEY}" --org "${ORG}" --force
 run_sm unregister
 run_sm register --activationkey "${ACTIVATION_KEY}" --org "${ORG}" --force --auto-attach
 run_sm unregister
+
 
 # what to run after the tests, ie, restore configs, etc
 #post () {
