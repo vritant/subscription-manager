@@ -61,6 +61,13 @@ if os.getuid() != 0:
 
 
 def main(args):
+    """args is a list of cli options as strings.
+
+    sys.argv or a reference to it should not be used here, but
+    a deep copy of sys.argv. This method also expects that the
+    copy of sys.argv excludes sys.argv[0] ('/bin/rhsm-debug' for
+    ex) from the list.
+    """
     return RhsmDebugCLI().main(args)
 
 

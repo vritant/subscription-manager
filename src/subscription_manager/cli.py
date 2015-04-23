@@ -36,6 +36,14 @@ class AbstractCLICommand(object):
     """
     Base class for rt commands. This class provides a templated run
     strategy.
+
+    Each sub command will sub class this class.
+
+    Note: CLI() is not a subclass of AbstractCLICommand(), but
+    subclasses like managercli.RegisterCommand() are.
+
+    CLI() is the base of the top level command, AbstractCliCommand() is
+    the base of the subcommands.
     """
     name = "cli"
     aliases = []
@@ -51,6 +59,16 @@ class AbstractCLICommand(object):
                                    formatter=WrappedIndentedHelpFormatter())
 
     def main(self, args=None):
+        """Each subclass needs to implement main().
+
+        'args' will be a list of command line options as strings.
+        'args' is not and should not be a reference to sys.argv, and
+        'args' will have had sys.argv[0] removed before calling this.
+
+        Typically, the __main__ in the executable wrapper scripts
+        (aka, /bin/subscription-manager) will read sys.argv and copy it
+        to a list, removing [0], and passing it main().
+        """
         raise NotImplementedError("Commands must implement: main(self, args=None)")
 
     def _validate_options(self):
@@ -75,7 +93,22 @@ class AbstractCLICommand(object):
 
 # taken wholseale from rho...
 class CLI(object):
+    """Base class for the top level CLI command.
 
+    This class represents the top level CLI, that is responsible for
+    settings up sub command classes, and invoking the sub command class
+    based on the cli args.
+
+    For a cli of 'subscription-manager register --username', this class
+    parses cli and finds the subcommand name 'register' 'register' is looked
+    up in the list of command_classes by comparing 'register' with each
+    command classes .name attribute. It will also look for command class
+    aliases and resolve them. So 'attach' has an alias of 'subscribe', so
+    either 'attach' or 'subscribe' will match AttachCommand.
+
+    main(args) will pass args to the resolve command_classes' .main. In
+    the example above, this is RegisterCommand().main(["register", "--username"])
+    """
     def __init__(self, command_classes=None):
 
         # log client versions early, server versions
@@ -83,21 +116,24 @@ class CLI(object):
         self.log_client_versions()
 
         command_classes = command_classes or []
+
+        self.cmd_name_to_cmd = {}
         self.cli_commands = {}
-        self.cli_aliases = {}
         for clazz in command_classes:
             cmd = clazz()
-            if cmd.name != "cli":
-                self.cli_commands[clazz.name] = cmd
-                for alias in cmd.aliases:
-                    self.cli_aliases[alias] = cmd
+
+            if cmd.name == "cli":
+                continue
+
+            self.cmd_name_to_cmd[cmd.name] = cmd
+            self.cli_commands[cmd.name] = cmd
+
+            for alias in cmd.aliases:
+                self.cmd_name_to_cmd[alias] = cmd
 
     def log_client_versions(self):
         self.client_versions = utils.get_client_versions()
         log.info("Client Versions: %s" % self.client_versions)
-
-    def _default_command(self):
-        self._usage()
 
     def _usage(self):
         print _("Usage: %s MODULE-NAME [MODULE-OPTIONS] [--help]") % os.path.basename(sys.argv[0])
@@ -121,47 +157,46 @@ class CLI(object):
         modules, descriptions = zip(*items_list)
         print columnize(modules, _echo, *descriptions) + '\n'
 
-    def _find_best_match(self, args):
+    def pop_subcommand_from_args(self, args):
+        """Given a list of args, find the first subcommands and it's following args.
+
+        If no sub_cmds are found, return (None, args)
+        If a sub_cmd is found, return sub_cmd, rest of args
+
+        for args = ["--foo","not_a_subcommand", "cat-cert", "--blip", "filename1", "filename2"]
+        and a sub command with name 'cat-cert', this returns
+            CatCertCommand, ['--blip', 'filename1', 'filename2']
+
+        Note the sub_cmd_name is not in the list returned.
         """
-        Returns the subcommand class that best matches the subcommand specified
-        in the argument list. For example, if you have two commands that start
-        with auth, 'auth show' and 'auth'. Passing in auth show will match
-        'auth show' not auth. If there is no 'auth show', it tries to find
-        'auth'.
+        sub_cmd = None
 
-        This function ignores the arguments which begin with --
-        """
-        possiblecmd = []
+        for index, arg in enumerate(args):
+            # ignore options
+            if arg.startswith('-'):
+                continue
 
-        if not args:
-            return None
+            # look cmd name or aliases
+            sub_cmd = self.cmd_name_to_cmd.get(arg, None)
 
-        for arg in args:
-            if not arg.startswith("-"):
-                possiblecmd.append(arg)
+            # return the first sub command, and the rest of the args
+            if sub_cmd:
+                # sub cmd and the rest of args
+                new_args = args[index:]
+                # just the rest of the args with command removed
+                sub_cmd_args = new_args[1:]
+                return sub_cmd, sub_cmd_args
 
-        if not possiblecmd:
-            return None
-
-        cmd_class = None
-        i = len(possiblecmd)
-        while cmd_class is None:
-            key = " ".join(possiblecmd[:i])
-            if key is None or key == "":
-                break
-
-            cmd_class = self.cli_commands.get(key)
-            if cmd_class is None:
-                cmd_class = self.cli_aliases.get(key)
-            i -= 1
-        return cmd_class
+        return sub_cmd, args
 
     def main(self, args):
-        cmd = self._find_best_match(args)
         if len(args) < 1:
-            self._default_command()
+            self._usage()
             sys.exit(0)
-        if not cmd:
+
+        sub_cmd, sub_cmd_args = self.pop_subcommand_from_args(args)
+
+        if not sub_cmd:
             self._usage()
             # Allow for a 0 return code if just calling --help
             return_code = 1
@@ -170,7 +205,7 @@ class CLI(object):
             sys.exit(return_code)
 
         try:
-            return cmd.main(args=args)
+            return sub_cmd.main(args=sub_cmd_args)
         except InvalidCLIOptionError, error:
             print error
 

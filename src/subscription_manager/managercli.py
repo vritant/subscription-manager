@@ -362,7 +362,9 @@ class CliCommand(AbstractCLICommand):
         log.info("Server Versions: %s" % self.server_versions)
 
     def main(self, args=None):
+        """args here does not include subcommand string as args[0]"""
         args = args or []
+
         # TODO: For now, we disable the CLI entirely. We may want to allow some commands in the future.
         if rhsm.config.in_container():
             system_exit(os.EX_CONFIG, _("subscription-manager is disabled when running inside a container. Please refer to your host system for subscription management.\n"))
@@ -370,9 +372,6 @@ class CliCommand(AbstractCLICommand):
         self.config_changed = False
 
         (self.options, self.args) = self.parser.parse_args(args)
-
-        # we dont need argv[0] in this list...
-        self.args = self.args[1:]
 
         # check for unparsed arguments
         if self.args:
@@ -2621,6 +2620,12 @@ class ManagerCLI(CLI):
                                 "server-type": _("Unknown")}
 
     def main(self, args=None):
+        """args: list of command line string arguments.
+
+        Note: This is a subset of sys.argv, and is a copy, not a reference
+        to sys.argv. The args list here has also had sys.argv[0]
+        ('bin/subscription-manager') removed from the list.
+        """
         args = args or []
 
         managerlib.check_identity_cert_perms()

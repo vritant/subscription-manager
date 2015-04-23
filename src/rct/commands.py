@@ -24,19 +24,24 @@ class RCTCliCommand(AbstractCLICommand):
     FILE_ARG_IDX = 1
 
     def main(self, args=None):
-        # In testing we sometimes specify args, otherwise use the default:
-        if args is None:
-            # Skip the program name and the command name.
-            args = sys.argv[2:]
+        # assumme command (sys.argv[0]) and subcommand ('cat-cert') have
+        # been removed from args list at this point. So any
+        # args can be considered filenames
+        args = args or []
 
         (self.options, self.args) = self.parser.parse_args(args)
 
         self._validate_options()
+
         return_code = self._do_command()
         if return_code is not None:
             return return_code
 
     def _get_file_from_args(self):
-        if not len(self.args) > self.FILE_ARG_IDX:
-            return ''
-        return self.args[self.FILE_ARG_IDX]
+        # FIXME
+        if not self.args:
+            return None
+
+        # return first filename
+        # FIXME: return a list
+        return self.args[0]
