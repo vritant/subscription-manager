@@ -358,8 +358,8 @@ class CliCommand(AbstractCLICommand):
 
         # get_server_versions needs to handle any exceptions
         # and return the server dict
-        self.server_versions = get_server_versions(self.no_auth_cp, exception_on_timeout=True)
-        log.info("Server Versions: %s" % self.server_versions)
+        server_versions = get_server_versions(self.no_auth_cp, exception_on_timeout=True)
+        log.info("Server Versions: %s" % server_versions)
 
     def main(self, args=None):
         """args here does not include subcommand string as args[0]"""
@@ -2530,11 +2530,14 @@ class VersionCommand(CliCommand):
     def _do_command(self):
         # FIXME: slightly odd in that we log that we can't get the version,
         # but then show "unknown" here.
-        print (_("server type: %s") % self.server_versions["server-type"])
-        print (_("subscription management server: %s") % self.server_versions["candlepin"])
-        print (_("subscription management rules: %s") % self.server_versions["rules-version"])
+        server_versions = get_server_versions(self.no_auth_cp, exception_on_timeout=True)
+
+        print (_("server type: %s") % server_versions["server-type"])
+        print (_("subscription management server: %s") % server_versions["candlepin"])
+        print (_("subscription management rules: %s") % server_versions["rules-version"])
 
         client_versions = get_client_versions()
+
         print ("subscription-manager: %s" % client_versions["subscription-manager"])
         print ("python-rhsm: %s" % client_versions["python-rhsm"])
 

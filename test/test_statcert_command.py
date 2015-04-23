@@ -32,7 +32,7 @@ class StatCertCommandStub(StatCertCommand):
         # Disable validation
         pass
 
-    def _create_cert(self):
+    def _create_cert(self, filename):
         return self._cert
 
     def _get_pem(self, filename):

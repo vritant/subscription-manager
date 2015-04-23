@@ -186,13 +186,13 @@ class TestCli(SubManFixture):
 
     def test_cli_find_best_match(self):
         cli = managercli.ManagerCLI()
-        best_match = cli._find_best_match(['version'])
+        best_match, args = cli.pop_subcommand_from_args(['version'])
         self.assertEquals(best_match.name, 'version')
 
     # shouldn't match on -sdf names
     def test_cli_find_best_match_no_dash(self):
         cli = managercli.ManagerCLI()
-        best_match = cli._find_best_match(['--version'])
+        best_match, args = cli.pop_subcommand_from_args(['--version'])
         self.assertEquals(best_match, None)
 
 
@@ -436,7 +436,7 @@ class TestListCommand(TestCliProxyCommand):
         mget_ents.return_value = create_pool_list()
 
         with Capture() as cap:
-            list_command.main(['list', '--available'])
+            list_command.main(['--available'])
         self.assertTrue('888888888888' in cap.out)
 
     def test_print_consumed_no_ents(self):
@@ -480,7 +480,7 @@ class TestListCommand(TestCliProxyCommand):
         for (test_num, data) in enumerate(test_data):
             with Capture() as captured:
                 list_command = managercli.ListCommand()
-                list_command.main(["list", "--installed", "--matches", data[0]])
+                list_command.main(["--installed", "--matches", data[0]])
 
             for (index, expected) in enumerate(data[1]):
                 if expected:
@@ -531,7 +531,7 @@ class TestListCommand(TestCliProxyCommand):
         for (test_num, data) in enumerate(test_data):
             with Capture() as captured:
                 list_command = managercli.ListCommand()
-                list_command.main(["list", "--consumed", "--matches", data[0]])
+                list_command.main(["--consumed", "--matches", data[0]])
 
             for (index, expected) in enumerate(data[1]):
                 if expected:
@@ -601,7 +601,7 @@ class TestListCommand(TestCliProxyCommand):
         try:
             with Capture() as captured:
                 list_command = managercli.ListCommand()
-                list_command.main(["list", "--installed", "--pool-only"])
+                list_command.main(["--installed", "--pool-only"])
 
             self.fail("Expected error did not occur")
         except SystemExit:
@@ -630,7 +630,7 @@ class TestListCommand(TestCliProxyCommand):
 
         with Capture() as captured:
             list_command = managercli.ListCommand()
-            list_command.main(["list", "--consumed", "--pool-only"])
+            list_command.main(["--consumed", "--pool-only"])
 
         for cert in consumed:
             self.assertFalse(cert.order.name in captured.out)

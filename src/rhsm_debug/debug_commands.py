@@ -208,9 +208,10 @@ class SystemCommand(CliCommand):
         return datetime.now().strftime("%Y%m%d-%f")
 
     def _get_version_info(self):
+        server_versions = utils.get_server_versions(self.no_auth_cp, exception_on_timeout=True)
         client_versions = utils.get_client_versions()
-        return {"server type": self.server_versions["server-type"],
-                "subscription management server": self.server_versions["candlepin"],
+        return {"server type": server_versions["server-type"],
+                "subscription management server": server_versions["candlepin"],
                 "subscription-manager": client_versions["subscription-manager"],
                 "python-rhsm": client_versions["python-rhsm"]}
 

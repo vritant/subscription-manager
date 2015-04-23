@@ -41,7 +41,7 @@ class CliRegistrationTests(SubManFixture):
 
         cmd._persist_identity_cert = self.stub_persist
 
-        cmd.main(['register', '--username=testuser1', '--password=password'])
+        cmd.main(['--username=testuser1', '--password=password'])
 
         # Then
         self.assertEqual('dummy-consumer-uuid', self.persisted_consumer["uuid"])
@@ -61,7 +61,7 @@ class CliRegistrationTests(SubManFixture):
         cmd._persist_identity_cert = self.stub_persist
         self._inject_ipm()
 
-        cmd.main(['register', '--username=testuser1', '--password=password'])
+        cmd.main(['--username=testuser1', '--password=password'])
 
         # FIXME: test something here...
         #self.assertTrue(mock_ipm_wc.call_count > 0)
@@ -78,7 +78,7 @@ class CliRegistrationTests(SubManFixture):
         mock_entcertlib_instance = mock_entcertlib.return_value
 
         self._inject_ipm()
-        cmd.main(['register', '--activationkey=test_key', '--org=test_org'])
+        cmd.main(['--activationkey=test_key', '--org=test_org'])
 
 #        self.assertTrue(mock_ipm_wc.call_count > 0)
 
@@ -102,7 +102,7 @@ class CliRegistrationTests(SubManFixture):
         connection.UEPConnection.getConsumer = Mock(return_value={'uuid': '123123'})
 
         self._inject_ipm()
-        cmd.main(['register', '--consumerid=123456', '--username=testuser1', '--password=password', '--org=test_org'])
+        cmd.main(['--consumerid=123456', '--username=testuser1', '--password=password', '--org=test_org'])
 
         #self.assertTrue(mock_ipm.write_cache.call_count > 0)
 

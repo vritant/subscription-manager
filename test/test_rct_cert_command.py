@@ -32,14 +32,6 @@ class RCTCertCommandTests(unittest.TestCase):
             self.assertEqual("You must specify a certificate file.",
                              str(e))
 
-    def test_invalid_file_arg(self):
-        command = RCTCertCommand()
-        try:
-            command.main(["this_file_does_not_exist.crt"])
-            self.fail("Expected InvalidCLIOptionError since no file does not exist.")
-        except InvalidCLIOptionError, e:
-            self.assertEqual("The specified certificate file does not exist.", str(e))
-
     @patch("os.path.isfile")
     @patch("rhsm.certificate.create_from_file")
     def test_valid_x509_required(self, mock_create, mock_isfile):
@@ -47,7 +39,7 @@ class RCTCertCommandTests(unittest.TestCase):
         mock_isfile.return_value = True
         command = RCTCertCommand()
 
-        command._do_command = lambda: command._create_cert()
+        command._do_command = lambda: command.certs
         try:
             command.main(['dummy-file.pem'])
             self.fail("Expected InvalidCLIOptionError since bad x509 file.")

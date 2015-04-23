@@ -43,7 +43,7 @@ class CatCertCommandStub(CatCertCommand):
         # Disable validation
         pass
 
-    def _create_cert(self):
+    def _create_cert(self, filename):
         return self.cert
 
 

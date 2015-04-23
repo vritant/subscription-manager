@@ -75,9 +75,8 @@ class RCTManifestCommandTests(SubManFixture):
 
     def test_extract_manifest(self):
         tmp_dir = tempfile.mkdtemp()
-        mancommand = RCTManifestCommand()
-        mancommand.args = [_build_valid_manifest()]
-        mancommand._extract_manifest(tmp_dir)
+        mancommand = DumpManifestCommand()
+        mancommand._extract_manifest(_build_valid_manifest(), tmp_dir)
 
         self.assertTrue(os.path.exists(os.path.join(tmp_dir, "export")))
 
