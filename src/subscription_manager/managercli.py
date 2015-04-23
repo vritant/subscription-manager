@@ -1600,10 +1600,9 @@ class RemoveCommand(CliCommand):
         self._validate_options()
         return_code = 0
         if self.is_registered():
-            identity = inj.require(inj.IDENTITY)
             try:
                 if self.options.all:
-                    total = self.cp.unbindAll(identity.uuid)
+                    total = self.cp.unbindAll(self.identity.uuid)
                     # total will be None on older Candlepins that don't
                     # support returning the number of subscriptions unsubscribed from
                     if total is None:
@@ -1616,25 +1615,30 @@ class RemoveCommand(CliCommand):
                 else:
                     success = []
                     failure = []
+
                     for serial in self.options.serials:
                         try:
-                            self.cp.unbindBySerial(identity.uuid, serial)
+                            self.cp.unbindBySerial(self.identity.uuid, serial)
                             success.append(serial)
                         except connection.RestlibException, re:
                             if re.code == 410:
                                 print re.msg
                                 system_exit(os.EX_SOFTWARE)
                             failure.append(re.msg)
+
                     if success:
                         print _("Serial numbers successfully removed at the server:")
                         for ser in success:
                             print "   %s" % ser
+
                     if failure:
                         print _("Serial numbers unsuccessfully removed at the server:")
                         for fail in failure:
                             print "   %s" % fail
+
                     if not success:
                         return_code = 1
+
                 EntCertActionInvoker().update()
             except connection.RestlibException, re:
                 log.error(re)
