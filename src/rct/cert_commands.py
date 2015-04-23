@@ -16,6 +16,7 @@
 import base64
 import gettext
 import os
+import sys
 
 from rhsm import certificate, _certificate
 from rhsm.certificate2 import EntitlementCertificate
@@ -32,16 +33,15 @@ class RCTCertCommand(RCTCliCommand):
 
     def __init__(self):
         super(RCTCertCommand, self).__init__()
-        self._add_options()
 
-    def _add_options(self):
-        pass
-
+    # TODO: make class attr
     def _get_usage(self):
         return _("%%prog %s [OPTIONS] CERT_FILE") % self.name
 
-    def _create_cert(self):
-        cert_file = self._get_file_from_args()
+    def _create_cert(self, cert_file):
+        if not os.path.isfile(cert_file):
+            raise InvalidCLIOptionError(_("The specified certificate file does not exist."))
+
         try:
             return certificate.create_from_file(cert_file)
         except certificate.CertificateException, ce:
@@ -49,13 +49,25 @@ class RCTCertCommand(RCTCliCommand):
                     _("Unable to read certificate file '%s': %s") % (cert_file,
                         ce))
 
-    def _validate_options(self):
-        cert_file = self._get_file_from_args()
-        if not cert_file:
-            raise InvalidCLIOptionError(_("You must specify a certificate file."))
+    def certs_and_filenames(self):
+        certs_and_filenames = []
+        for cert_filename in self.filenames():
+            try:
+                cert = self._create_cert(cert_filename)
+                certs_and_filenames.append((cert, cert_filename))
+            except InvalidCLIOptionError, e:
+                sys.stderr.write('%s\n' % e)
+                continue
+        return certs_and_filenames
 
-        if not os.path.isfile(cert_file):
-            raise InvalidCLIOptionError(_("The specified certificate file does not exist."))
+    def certs(self):
+        certs_and_filenames = self.certs_and_filenames()
+        return [x[0] for x in certs_and_filenames]
+
+    def _validate_options(self):
+        cert_files = self.filenames()
+        if not cert_files:
+            raise InvalidCLIOptionError(_("You must specify a certificate file."))
 
 
 class CatCertCommand(RCTCertCommand):
@@ -76,9 +88,10 @@ class CatCertCommand(RCTCertCommand):
         """
         Does the work that this command intends.
         """
-        cert = self._create_cert()
-        printc(cert, skip_content=self.options.no_content,
-               skip_products=self.options.no_products)
+        certs = self.certs()
+        for cert in certs:
+            printc(cert, skip_content=self.options.no_content,
+                   skip_products=self.options.no_products)
 
 
 class StatCertCommand(RCTCertCommand):
@@ -88,8 +101,14 @@ class StatCertCommand(RCTCertCommand):
     primary = True
 
     def _do_command(self):
-        cert = self._create_cert()
-        pem = self._get_pem(self._get_file_from_args())
+        certs = self.certs()
+
+        # TODO: better support multiple certs in a file.
+        for cert in certs:
+            self.print_cert_stat(cert)
+
+    def print_cert_stat(self, cert):
+        pem = cert.x509.as_pem()
         print _("Type: %s") % type_to_string(cert)
         print _("Version: %s") % cert.version
         print _("DER size: %db") % self._get_der_size(pem)

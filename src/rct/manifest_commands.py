@@ -41,6 +41,14 @@ def get_value(json_dict, path):
     return current
 
 
+class ManifestFilenameNotFoundError(Exception):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __str__(self):
+        return _("The manifest filename does not exist: %s") % self.filename
+
+
 class ZipExtractAll(ZipFile):
     """extend ZipFile with a safer extractall
 
@@ -104,8 +112,10 @@ class ZipExtractAll(ZipFile):
     def _is_secure(self, base, new_file):
         base_path = os.path.abspath(base)
         new_path = os.path.abspath(new_file)
+
         if not new_path.startswith(base_path):
             raise Exception(_('Manifest zip attempted to extract outside of the base directory.'))
+
         #traces symlink to source, and checks that it is valid
         real_new_path = os.path.realpath(new_path)
         if real_new_path != new_path:
@@ -115,16 +125,20 @@ class ZipExtractAll(ZipFile):
 
     def extractall(self, location, overwrite=False):
         self._is_secure(location, location)
+
         for path_name in self.namelist():
             (directory, filename) = os.path.split(path_name)
             directory = os.path.join(location, directory)
+
             self._is_secure(location, directory)
             if not os.path.exists(directory):
                 os.makedirs(directory)
+
             new_location = os.path.join(directory, filename)
             self._is_secure(location, new_location)
             if (os.path.exists(new_location) and overwrite):
                 os.remove(new_location)
+
             self._write_file(new_location, path_name)
 
 
@@ -132,33 +146,15 @@ class RCTManifestCommand(RCTCliCommand):
 
     INNER_FILE = "consumer_export.zip"
 
+    # TODO: make class attr
     def _get_usage(self):
         return _("%%prog %s [OPTIONS] MANIFEST_FILE") % self.name
 
     def _validate_options(self):
-        manifest_file = self._get_file_from_args()
-        if not manifest_file:
+        #manifest_file = self._get_file_from_args()
+        manifest_files = self.filenames()
+        if not manifest_files:
             raise InvalidCLIOptionError(_("You must specify a manifest file."))
-
-        if not os.path.isfile(manifest_file):
-            raise InvalidCLIOptionError(_("The specified manifest file does not exist."))
-
-    def _extract_manifest(self, location, overwrite=False):
-        # Extract the outer file
-        archive = ZipExtractAll(self._get_file_from_args(), 'r')
-        archive.extractall(location, overwrite)
-
-        # now extract the inner file
-        if location:
-            inner_file = os.path.join(location, self.INNER_FILE)
-        else:
-            inner_file = self.INNER_FILE
-
-        archive = ZipExtractAll(inner_file, 'r')
-        archive.extractall(location, overwrite)
-
-        # Delete the intermediate file
-        os.remove(inner_file)
 
 
 class CatManifestCommand(RCTManifestCommand):
@@ -264,7 +260,18 @@ class CatManifestCommand(RCTManifestCommand):
         """
         Does the work that this command intends.
         """
-        temp = ZipExtractAll(self._get_file_from_args(), 'r')
+        for filename in self.filenames():
+            try:
+                self.print_manifest(filename)
+            except ManifestFilenameNotFoundError, e:
+                sys.stderr.write("%s\n" % e)
+
+    def print_manifest(self, filename):
+
+        if not os.path.isfile(filename):
+            raise ManifestFilenameNotFoundError(filename)
+
+        temp = ZipExtractAll(filename, 'r')
         # Print out the header
         print("\n+-------------------------------------------+")
         print(_("\tManifest"))
@@ -282,7 +289,7 @@ class DumpManifestCommand(RCTManifestCommand):
     primary = True
 
     def _add_options(self):
-        RCTManifestCommand._add_options()
+        super(DumpManifestCommand, self)._add_options()
 
         self.parser.add_option("--destination", dest="destination",
                                help=_("directory to extract the manifest to"))
@@ -290,9 +297,9 @@ class DumpManifestCommand(RCTManifestCommand):
                                dest="overwrite_files", default=False,
                                help=_("overwrite files which may exist"))
 
-    def _extract(self, destination, overwrite):
+    def _extract(self, filename, destination, overwrite):
         try:
-            self._extract_manifest(destination, overwrite)
+            self._extract_manifest(filename, destination, overwrite)
         except EnvironmentError, e:
             # IOError/OSError base class
             if e.errno == errno.EEXIST:
@@ -307,13 +314,34 @@ class DumpManifestCommand(RCTManifestCommand):
             return False
         return True
 
+    def _extract_manifest(self, filename, location, overwrite=False):
+        # Extract the outer file
+        archive = ZipExtractAll(filename, 'r')
+        archive.extractall(location, overwrite)
+
+        # now extract the inner file
+        if location:
+            inner_file = os.path.join(location, self.INNER_FILE)
+        else:
+            inner_file = self.INNER_FILE
+
+        archive = ZipExtractAll(inner_file, 'r')
+        archive.extractall(location, overwrite)
+
+        # Delete the intermediate file
+        os.remove(inner_file)
+
     def _do_command(self):
         """
         Does the work that this command intends.
         """
-        if self.options.destination:
-            if self._extract(self.options.destination, self.options.overwrite_files):
-                print _("The manifest has been dumped to the %s directory") % self.options.destination
-        else:
-            if self._extract(os.getcwd(), self.options.overwrite_files):
-                print _("The manifest has been dumped to the current directory")
+        dest = self.options.destination or os.getcwd()
+        overwrite = self.options.overwrite_files
+
+        for filename in self.filenames():
+            extract_result = self._extract(filename, dest, overwrite)
+
+            if not extract_result:
+                continue
+
+            print _("The manifest has been dumped to the directory: %s") % dest

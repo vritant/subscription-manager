@@ -13,15 +13,19 @@
 # in this software or its documentation.
 #
 
-import sys
-
 import gettext
 from subscription_manager.cli import AbstractCLICommand
 _ = gettext.gettext
 
 
 class RCTCliCommand(AbstractCLICommand):
-    FILE_ARG_IDX = 1
+    def __init__(self):
+        super(RCTCliCommand, self).__init__()
+
+        self._add_options()
+
+    def _add_options(self):
+        pass
 
     def main(self, args=None):
         # assumme command (sys.argv[0]) and subcommand ('cat-cert') have
@@ -37,11 +41,6 @@ class RCTCliCommand(AbstractCLICommand):
         if return_code is not None:
             return return_code
 
-    def _get_file_from_args(self):
-        # FIXME
-        if not self.args:
-            return None
-
-        # return first filename
-        # FIXME: return a list
-        return self.args[0]
+    # TODO: make property
+    def filenames(self):
+        return self.args
