@@ -57,6 +57,10 @@ class AbstractCLICommand(object):
         self.parser = OptionParser(usage=self._get_usage(),
                                    description=self.shortdesc,
                                    formatter=WrappedIndentedHelpFormatter())
+        self._add_options()
+
+    def _add_options():
+        raise NotImplementedError("Commands must implement _add_options()")
 
     def main(self, args=None):
         """Each subclass needs to implement main().
@@ -120,7 +124,9 @@ class CLI(object):
         self.cmd_name_to_cmd = {}
         self.cli_commands = {}
         for clazz in command_classes:
+            print clazz
             cmd = clazz()
+            print cmd
 
             if cmd.name == "cli":
                 continue

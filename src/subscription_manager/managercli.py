@@ -274,9 +274,7 @@ class CliCommand(AbstractCLICommand):
 
         self.log = self._get_logger()
 
-        self.log.debug("init called %s", self.__class__.__name__)
-        self._add_options()
-
+        # populate optional optparse options
         if self.require_connection:
             self._add_proxy_options()
 
@@ -533,9 +531,9 @@ class UserPassCommand(CliCommand):
         super(UserPassCommand, self).__init__()
         self._username = None
         self._password = None
+        self._add_user_pass_options()
 
-    def _add_options(self):
-        super(UserPassCommand, self)._add_options()
+    def _add_user_pass_options(self):
         self.parser.add_option("--username", dest="username",
                                help=_("username to use when authorizing against the server"))
         self.parser.add_option("--password", dest="password",
@@ -581,9 +579,9 @@ class OrgCommand(UserPassCommand):
     def __init__(self):
         super(OrgCommand, self).__init__()
         self._org = None
+        self._add_org_options()
 
-    def _add_options(self):
-        super(OrgCommand, self)._add_options()
+    def _add_org_options(self):
         self.parser.add_option("--org", dest="org", metavar="ORG_KEY",
             help=self.org_help_text)
 
@@ -644,7 +642,6 @@ class IdentityCommand(UserPassCommand):
     primary = False
 
     def _add_options(self):
-        super(IdentityCommand, self)._add_options()
         self.parser.add_option("--regenerate", action='store_true',
                                help=_("request a new certificate be generated"))
         self.parser.add_option("--force", action='store_true',
@@ -795,8 +792,6 @@ class AutohealCommand(CliCommand):
     org_help_text = _("specify whether to enable or disable auto-attaching of subscriptions")
 
     def _add_options(self):
-        super(AutohealCommand, self)._add_options()
-
         self.parser.add_option("--enable", dest="enable", action='store_true',
                 help=_("try to attach subscriptions for uncovered products each check-in"))
         self.parser.add_option("--disable", dest="disable", action='store_true',
@@ -833,8 +828,6 @@ class ServiceLevelCommand(OrgCommand):
     url_options = True
 
     def _add_options(self):
-        super(ServiceLevelCommand, self)._add_options()
-
         self.parser.add_option("--show", dest="show", action='store_true',
                 help=_("show this system's current service level"))
         self.parser.add_option("--list", dest="list", action='store_true',
@@ -969,8 +962,6 @@ class RegisterCommand(UserPassCommand):
     url_options = True
 
     def _add_options(self):
-        super(RegisterCommand, self)._add_options()
-
         self.parser.add_option("--baseurl", dest="base_url",
                               default=None, help=_("base URL for content in form of https://hostname:port/prefix"))
         self.parser.add_option("--type", dest="consumertype", default="system", metavar="UNITTYPE",
@@ -1276,8 +1267,6 @@ class RedeemCommand(CliCommand):
     primary = False
 
     def _add_options(self):
-        super(RedeemCommand, self)._add_options()
-
         self.parser.add_option("--email", dest="email", action='store',
                                help=_("email address to notify when "
                                "subscription redemption is complete"))
@@ -1329,8 +1318,6 @@ class ReleaseCommand(CliCommand):
     primary = True
 
     def _add_options(self):
-        super(ReleaseCommand, self)._add_options()
-
         self.parser.add_option("--show", dest="show", action="store_true",
                                help=_("shows current release setting; default command"))
         self.parser.add_option("--list", dest="list", action="store_true",
@@ -1407,7 +1394,6 @@ class AttachCommand(CliCommand):
     primary = True
 
     def _add_options(self):
-        super(AttachCommand, self)._add_options()
         self.parser.add_option("--pool", dest="pool", action='append',
                                help=_("the ID of the pool to attach (can be specified more than once)"))
         self.parser.add_option("--quantity", dest="quantity",
@@ -1574,7 +1560,6 @@ class RemoveCommand(CliCommand):
     primary = True
 
     def _add_options(self):
-        super(RemoveCommand, self)._add_options()
         self.parser.add_option("--serial", action='append', dest="serials", metavar="SERIAL",
                        help=_("certificate serial number to remove (can be specified more than once)"))
         self.parser.add_option("--all", dest="all", action="store_true",
@@ -1684,7 +1669,6 @@ class FactsCommand(CliCommand):
     primary = False
 
     def _add_options(self):
-        super(FactsCommand, self)._add_options()
         self.parser.add_option("--list", action="store_true",
                                help=_("list known facts for this system"))
         self.parser.add_option("--update", action="store_true",
@@ -1732,7 +1716,6 @@ class ImportCertCommand(CliCommand):
     require_connection = False
 
     def _add_options(self):
-        super(ImportCertCommand, self)._add_options()
         self.parser.add_option("--certificate", action="append", dest="certificate_file",
                                help=_("certificate file to import (can be specified more than once)"))
 
@@ -1793,8 +1776,6 @@ class PluginsCommand(CliCommand):
     require_connection = False
 
     def _add_options(self):
-        super(PluginsCommand, self)._add_options()
-
         SM = "subscription-manager"
         self.parser.add_option("--list", action="store_true",
                                 help=_("list %s plugins") % SM)
@@ -1846,8 +1827,6 @@ class ReposCommand(CliCommand):
     primary = False
 
     def _add_options(self):
-        super(ReposCommand, self)._add_options()
-
         def repo_callback(option, opt, repoid, parser):
             """
             Store our repos to enable and disable in a combined, ordered list of
@@ -2118,7 +2097,6 @@ class ListCommand(CliCommand):
     primary = True
 
     def _add_options(self):
-        super(ListCommand, self)._add_options()
         self.parser.add_option("--installed", action='store_true', help=_("list shows those products which are installed (default)"))
         self.parser.add_option("--available", action='store_true',
                                help=_("show those subscriptions which are available"))
@@ -2410,7 +2388,6 @@ class OverrideCommand(CliCommand):
     primary = False
 
     def _add_options(self):
-        super(OverrideCommand, self)._add_options()
         self.parser.add_option("--repo", dest="repos", action="append", metavar="REPOID",
             help=_("repository to modify (can be specified more than once)"))
         self.parser.add_option("--remove", dest="removals", action="append", metavar="NAME",
@@ -2552,7 +2529,6 @@ class StatusCommand(CliCommand):
     primary = True
 
     def _add_options(self):
-        super(StatusCommand, self)._add_options()
         self.parser.add_option("--ondate", dest="on_date",
                                 help=(_("future date to check status on, defaults to today's date (example: %s)")
                                       % strftime("%Y-%m-%d", localtime())))

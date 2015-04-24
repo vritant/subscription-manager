@@ -77,8 +77,6 @@ class CatCertCommand(RCTCertCommand):
     primary = True
 
     def _add_options(self):
-        super(CatCertCommand, self)._add_options()
-
         self.parser.add_option("--no-products", dest="no_products", action="store_true",
                                help=_("do not show the cert's product information"))
         self.parser.add_option("--no-content", dest="no_content", action="store_true",

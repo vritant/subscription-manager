@@ -52,7 +52,6 @@ class SystemCommand(CliCommand):
     primary = True
 
     def _add_options(self):
-        super(SystemCommand, self)._add_options()
         self.parser.add_option("--destination", dest="destination",
                                default="/tmp", help=_("the destination location of the result; default is /tmp"))
         # default is to build an archive, this skips the archive and clean up,

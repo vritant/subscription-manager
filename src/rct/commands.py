@@ -19,14 +19,6 @@ _ = gettext.gettext
 
 
 class RCTCliCommand(AbstractCLICommand):
-    def __init__(self):
-        super(RCTCliCommand, self).__init__()
-
-        self._add_options()
-
-    def _add_options(self):
-        pass
-
     def main(self, args=None):
         # assumme command (sys.argv[0]) and subcommand ('cat-cert') have
         # been removed from args list at this point. So any
@@ -40,6 +32,9 @@ class RCTCliCommand(AbstractCLICommand):
         return_code = self._do_command()
         if return_code is not None:
             return return_code
+
+    def _add_options(self):
+        pass
 
     # TODO: make property
     def filenames(self):

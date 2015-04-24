@@ -289,8 +289,6 @@ class DumpManifestCommand(RCTManifestCommand):
     primary = True
 
     def _add_options(self):
-        super(DumpManifestCommand, self)._add_options()
-
         self.parser.add_option("--destination", dest="destination",
                                help=_("directory to extract the manifest to"))
         self.parser.add_option("-f", "--force", action="store_true",
