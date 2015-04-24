@@ -124,9 +124,7 @@ class CLI(object):
         self.cmd_name_to_cmd = {}
         self.cli_commands = {}
         for clazz in command_classes:
-            print clazz
             cmd = clazz()
-            print cmd
 
             if cmd.name == "cli":
                 continue

@@ -655,12 +655,10 @@ class IdentityCommand(UserPassCommand):
             system_exit(os.EX_USAGE, _("--username and --password can only be used with --force"))
 
     def _do_command(self):
-        # get current consumer identity
-        identity = inj.require(inj.IDENTITY)
 
         # check for Classic before doing anything else
         if ClassicCheck().is_registered_with_classic():
-            if identity.is_valid():
+            if self.identity.is_valid():
                 print _("server type: %s") % get_branding().REGISTERED_TO_BOTH_SUMMARY
             else:
                 # no need to continue if user is only registered to Classic
@@ -1686,7 +1684,6 @@ class FactsCommand(CliCommand):
     def _do_command(self):
         self._validate_options()
 
-        identity = inj.require(inj.IDENTITY)
         if self.options.list:
             facts = inj.require(inj.FACTS)
             fact_dict = facts.get_facts()
@@ -1701,7 +1698,7 @@ class FactsCommand(CliCommand):
         if self.options.update:
             facts = inj.require(inj.FACTS)
             try:
-                facts.update_check(self.cp, identity.uuid, force=True)
+                facts.update_check(self.cp, self.identity.uuid, force=True)
             except connection.RestlibException, re:
                 log.exception(re)
                 system_exit(os.EX_SOFTWARE, re.msg)
