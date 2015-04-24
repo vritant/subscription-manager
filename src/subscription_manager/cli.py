@@ -142,11 +142,11 @@ class CLI(object):
         items.sort()
         items_primary = []
         items_other = []
-        for (name, cmd_class) in items:
-            if (cmd_class.primary):
-                items_primary.append(("  " + name, cmd_class.shortdesc))
+        for (name, cmd) in items:
+            if (cmd.primary):
+                items_primary.append(("  " + name, cmd.shortdesc))
             else:
-                items_other.append(("  " + name, cmd_class.shortdesc))
+                items_other.append(("  " + name, cmd.shortdesc))
 
         all_items = [(_("Primary Modules:"), '\n')] + \
                 items_primary + [('\n' + _("Other Modules:"), '\n')] + \
