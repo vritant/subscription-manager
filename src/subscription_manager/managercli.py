@@ -229,7 +229,7 @@ def get_installed_product_status(uep, filter_string=None):
     """
     product_status = []
 
-    calculator = inj.require(inj.PRODUCT_DATE_RANGE_CALCULATOR, uep)
+    calculator = inj.require(inj.PRODUCT_DATE_RANGE_CALCULATOR)
     sorter = inj.require(inj.CERT_SORTER)
     cert_filter = None
 
@@ -1591,7 +1591,6 @@ class AttachCommand(CliCommand):
         return return_code
 
     def _fully_subscribed(self):
-        log.debug("has_invalid_products")
         products_installed = len(get_installed_product_status(self.cp))
         # if we are green, we don't need to go to the server
         self.sorter = inj.require(inj.CERT_SORTER)

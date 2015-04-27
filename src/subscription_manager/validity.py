@@ -24,15 +24,8 @@ log = logging.getLogger('rhsm-app.' + __name__)
 
 class ValidProductDateRangeCalculator(object):
 
-    def __init__(self, uep=None):
-        uep = uep or inj.require(inj.CP_PROVIDER).get_consumer_auth_cp()
-        self.identity = inj.require(inj.IDENTITY)
-        if self.identity.is_valid():
-            self.prod_status_cache = inj.require(inj.PROD_STATUS_CACHE)
-            self.prod_status = self.prod_status_cache.load_status(
-                    uep, self.identity.uuid)
-
-    def calculate(self, product_hash):
+    # This could be static, except we create
+    def calculate(self, product_id):
         """
         Calculate the valid date range for the specified product based on
         today's date.
@@ -44,15 +37,21 @@ class ValidProductDateRangeCalculator(object):
         The returned date range will be in GMT, so keep this in mind when
         presenting these dates to the user.
         """
+        identity = inj.require(inj.IDENTITY)
         # If we're not registered, don't return a valid range:
-        if not self.identity.is_valid():
+        if not identity.is_valid():
             return None
 
-        if self.prod_status is None:
+        uep = inj.require(inj.CP_PROVIDER).get_consumer_auth_cp()
+        prod_status_cache = inj.require(inj.PROD_STATUS_CACHE)
+
+        prod_status = prod_status_cache.load_status(uep, identity.uuid)
+
+        if prod_status is None:
             return None
 
-        for prod in self.prod_status:
-            if product_hash != prod['productId']:
+        for prod in prod_status:
+            if product_id != prod['productId']:
                 continue
 
             # Found the product ID requested:
@@ -74,5 +73,5 @@ class ValidProductDateRangeCalculator(object):
         # about it yet. This is extremely weird and should be unlikely,
         # but we will log and handle gracefully:
         log.error("Requested status for installed product server does not "
-                "know about: %s" % product_hash)
+                "know about: %s" % product_id)
         return None

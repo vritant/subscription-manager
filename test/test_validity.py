@@ -78,7 +78,7 @@ class ValidProductDateRangeCalculatorTests(SubManFixture):
         self.prod_status_cache = NonCallableMock()
         self.prod_status_cache.load_status = Mock(return_value=self.status)
         inj.provide(inj.PROD_STATUS_CACHE, self.prod_status_cache)
-        self.calculator = ValidProductDateRangeCalculator(None)
+        self.calculator = ValidProductDateRangeCalculator()
 
     # If client asks for product status for something server doesn't
     # know is installed, this is very weird, but we will log and handle
@@ -108,6 +108,6 @@ class ValidProductDateRangeCalculatorTests(SubManFixture):
         id_mock = NonCallableMock()
         id_mock.is_valid.return_value = False
         inj.provide(inj.IDENTITY, id_mock)
-        self.calculator = ValidProductDateRangeCalculator(None)
+        self.calculator = ValidProductDateRangeCalculator()
         for pid in (INST_PID_1, INST_PID_2, INST_PID_3):
             self.assertTrue(self.calculator.calculate(pid) is None)
