@@ -208,11 +208,8 @@ class ProductCertificateDirectory(CertificateDirectory):
     # Instead of always overriding, something like
     # productid.ComparableProductCert may be useful
     def get_installed_products(self):
-        prod_certs = self.list()
-        installed_products = {}
-        for product_cert in prod_certs:
-            product = product_cert.products[0]
-            installed_products[product.id] = product_cert
+        installed_products = dict([(pc.products[0].id, pc)
+                                    for pc in self.list()])
         log.debug("Installed product IDs: %s" % installed_products.keys())
         return installed_products
 

@@ -771,6 +771,7 @@ def _sub_dict(datadict, subkeys, default=None):
 
 
 def format_date(dt):
+    """Return a string of the dt using the locales format."""
     if dt:
         try:
             return dt.astimezone(tzlocal()).strftime("%x")
@@ -779,6 +780,16 @@ def format_date(dt):
             return dt.strftime("%x")
     else:
         return ""
+
+
+def format_date_range(date_range):
+    """Return a tuple of formatted date strings for beging and end of date_range.
+
+    Returns empty strings if date_range or beging or end date are Falsey
+    """
+    if not date_range:
+        return "", ""
+    return format_date(date_range.begin()), format_date(date_range.end())
 
 
 def unregister(uep, consumer_uuid):

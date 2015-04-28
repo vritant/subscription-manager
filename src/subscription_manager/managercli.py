@@ -46,7 +46,7 @@ from subscription_manager.hwprobe import ClassicCheck
 import subscription_manager.injection as inj
 from subscription_manager.jsonwrapper import PoolWrapper
 from subscription_manager import managerlib
-from subscription_manager.managerlib import valid_quantity, format_date
+from subscription_manager.managerlib import valid_quantity
 from subscription_manager.release import ReleaseBackend
 from subscription_manager.repolib import RepoActionInvoker, RepoFile
 from subscription_manager.utils import parse_server_info, \
@@ -243,7 +243,6 @@ def get_installed_product_status(filter_string=None):
     # NOTE: why isn't this in cert_sorter?
 
     product_status = []
-
     calculator = inj.require(inj.PRODUCT_DATE_RANGE_CALCULATOR)
     sorter = inj.require(inj.CERT_SORTER)
     cert_filter = None
@@ -251,27 +250,19 @@ def get_installed_product_status(filter_string=None):
     if filter_string is not None:
         cert_filter = ProductCertificateFilter(filter_string)
 
-    for installed_product in sorter.installed_products:
-        product_cert = sorter.installed_products[installed_product]
+    for product_id, product_cert in sorter.installed_products.items():
 
         if cert_filter is None or cert_filter.match(product_cert):
             for product in product_cert.products:
-                begin = ""
-                end = ""
-                prod_status_range = calculator.calculate(product.id)
-
-                if prod_status_range:
-                    # Format the date in user's local time as the date
-                    # range is returned in GMT.
-                    begin = format_date(prod_status_range.begin())
-                    end = format_date(prod_status_range.end())
+                prod_status_range = calculator.calculate(product_id)
+                begin, end = managerlib.format_date_range(prod_status_range)
 
                 product_status.append((
                     product.name,
-                    installed_product,
+                    product_id,
                     product.version,
                     ",".join(product.architectures),
-                    sorter.get_status(product.id),
+                    sorter.get_status(product_id),
                     sorter.reasons.get_product_reasons(product),
                     begin,
                     end
@@ -373,7 +364,6 @@ class PoolAttach(Attach):
             # TODO
             # FIXME: raise an particular exception
             system_exit(os.EX_SOFTWARE, rest_exception.msg)  # some other error.. don't try again
-        pass
 
     def attach_pools(self, pools):
         attached_pools = []
@@ -2501,6 +2491,8 @@ class ListCommand(CliCommand):
         # that are not yet active.
         certs = self.entitlement_dir.list()
         cert_filter = EntitlementCertificateFilter(filter_string=filter_string, service_level=service_level)
+
+        # certs iterator
 
         if len(certs):
             # Check if we need to apply our cert filter
