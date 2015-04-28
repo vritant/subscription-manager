@@ -1118,6 +1118,12 @@ class AsyncBackend(object):
         """
         Subscribe to the selected pools.
         """
+
+        # TODO/FIXME: merge this with managercli.PoolAttach and
+        # async.AsyncBind.bind
+        #
+        # attach = PoolAttach(consumer_uuid, service_level, pool_quantitys)
+        #
         try:
             if not current_sla:
                 log.debug("Saving selected service level for this system.")

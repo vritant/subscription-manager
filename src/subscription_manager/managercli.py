@@ -172,10 +172,6 @@ def autosubscribe(cp, consumer_uuid, service_level=None):
     This is a wrapper for bind/bindByProduct. Eventually, we will exclusively
     use bind, but for now, we support both.
     """
-    log.debug("autosubscribe")
-    if service_level is not None:
-        cp.updateConsumer(consumer_uuid, service_level=service_level)
-        print(_("Service level set to: %s") % service_level)
 
     plugin_manager = inj.require(inj.PLUGIN_MANAGER)
     attached_pools = []
@@ -198,35 +194,54 @@ def autosubscribe(cp, consumer_uuid, service_level=None):
     return attached_pools
 
 
-def show_autosubscribe_output(uep):
-    installed_status = get_installed_product_status(uep)
+# TODO: split into getting the list of subscribed, and
+#       showing the list of subscribed
+def format_installed_product_status(installed_status):
+    """Returns a string indicating current entitlement status by product.
 
+    installed_status is a list as returned by get_installed_product_status()"""
+
+    res_lines = []
     if not installed_status:
         # Returning an error code here breaks registering when no products are installed, and the
         # AttachCommand already performs this check before calling.
-        print _("No products installed.")
-        return 0
+        res_lines.append(_("No products installed."))
+        return res_lines
 
-    log.info("Attempted to auto-attach/heal the system.")
-    print _("Installed Product Current Status:")
-    subscribed = 1
-    all_subscribed = True
+    # TODO: can happen outside this method
+    res_lines.append(_("Installed Product Current Status:"))
+
     for prod_status in installed_status:
-        if prod_status[4] == SUBSCRIBED:
-            subscribed = 0
         status = STATUS_MAP[prod_status[4]]
-        if prod_status[4] == NOT_SUBSCRIBED:
-            all_subscribed = False
-        print columnize(PRODUCT_STATUS, _echo, prod_status[0], status) + "\n"
+        name = prod_status[0]
+
+        # TODO: We also have status reasons here, we could include that.
+        res_lines.append(columnize(PRODUCT_STATUS, _echo,
+                                   name, status))
+        # empty line
+        res_lines.append("")
+
+    all_subscribed = all([installed_product_status[4] == SUBSCRIBED
+                          for installed_product_status in installed_status])
+
     if not all_subscribed:
-        print _("Unable to find available subscriptions for all your installed products.")
-    return subscribed
+        res_lines.append(_("Unable to find available subscriptions "
+                           "for all your installed products."))
+    return res_lines
 
 
-def get_installed_product_status(uep, filter_string=None):
+def get_installed_product_status(filter_string=None):
     """
      Returns the Installed products and their subscription states
+
+    Returns a list of tuples like:
+        (product_name, product_id, product_version, product arches,
+         product_status, product_reasons, start_date, end_data)
+
     """
+
+    # NOTE: why isn't this in cert_sorter?
+
     product_status = []
 
     calculator = inj.require(inj.PRODUCT_DATE_RANGE_CALCULATOR)
@@ -263,6 +278,278 @@ def get_installed_product_status(uep, filter_string=None):
                 ))
 
     return product_status
+
+
+class Attach(object):
+    return_code = 0
+
+    def pre_attach(self):
+        # This drives updating facts and installed products, etc to the server
+        try:
+            cert_action_client = ActionClient()
+            cert_action_client.update()
+            log.debug("cert_action_client post")
+        except Exception, e:
+            handle_exception("Unable to attach: %s" % e, e)
+
+    def run(self):
+        self.pre_attach()
+        self.attach()
+        self.post_attach()
+        self.display()
+        self.request_validity_check()
+        return self.return_code
+        # updated
+
+    def post_attach(self):
+        self._update_ent_certs()
+        inj.require(inj.CERT_SORTER).force_cert_check()
+
+    def _update_ent_certs(self):
+        # FIXME/TODO: this mostly duplicates managerlib.fetch_certificates
+        report = EntCertActionInvoker().update()
+
+        if report and report.exceptions():
+            # FIXME: use logging/display
+            print _('Entitlement Certificate(s) update failed due to the following reasons:')
+            for e in report.exceptions():
+                print '\t-', str(e)
+
+    def request_validity_check(self):
+        # Make sure the sorter is fresh (low footprint if it is)
+        inj.require(inj.CERT_SORTER).force_cert_check()
+        inj.require(inj.DBUS_IFACE).update()
+
+    def print_installed_product_status(self, installed_product_status):
+        # show current entitlement status
+        status_lines = format_installed_product_status(installed_product_status)
+        print '\n'.join(status_lines)
+
+
+# For the gui case, we can specify different quantities for each pool,
+# so we may need to pass in a map/tuple of (pool, quantity) instead of just
+# the list of pools
+class PoolAttach(Attach):
+    def __init__(self, consumer_uuid, pools, quantity):
+        self.pools = pools
+        self.installed_product_status = None
+        self.consumer_uuid = consumer_uuid
+        self.quantity = quantity
+
+    def attach(self):
+        try:
+            attached_pools = self.attach_pools(self.pools)
+        except Exception, e:
+            self.handle_exception(e)
+        return attached_pools
+
+    def display(self):
+        pass
+
+    def handle_exception(self, exception):
+        handle_exception("Unable to attach: %s" % exception, exception)
+
+    # For gui cases, this may include a retry
+    def handle_pool_attach_error(self, rest_exception):
+        # Errors we can keep going
+        #  PoolAlreadyAttached(pool, error)
+        #  PoolDoesntExist(pool, error)
+        # Errors we give up
+        #  PoolAttachError(pool, error)
+
+        # try:
+        #    raise error
+        # except (PoolDoesntExist, PoolAttachError), e:
+        #    print e
+        # else:
+        #   raise
+
+        if rest_exception.code == 403:
+            # raise
+            print rest_exception.msg  # already subscribed.
+        elif rest_exception.code in [400, 404]:
+            print rest_exception.msg  # no such pool.
+        else:
+            # TODO
+            # FIXME: raise an particular exception
+            system_exit(os.EX_SOFTWARE, rest_exception.msg)  # some other error.. don't try again
+        pass
+
+    def attach_pools(self, pools):
+        attached_pools = []
+        for pool in pools:
+            attached_ents, errors = self.attach_pool(consumer_uuid=self.consumer_uuid,
+                                                     pool=pool,
+                                                     quantity=self.quantity)
+            for attached_ent in attached_ents:
+                attached_pools += self.pools_attached_from_ent(pool, attached_ent)
+
+        for error in errors:
+            self.handle_pool_attach_error(error)
+
+        return attached_pools
+
+    def attach_pool(self, consumer_uuid, pool, quantity):
+        """attach/subscribe/bind to a particular pool, and return the list of entitlements."""
+
+        # NOTE: we could pretty much use async.AsyncBind.bind() here if we
+        #       wanted to.
+
+        attached_ents = []
+        errors = []
+
+        plugin_manager = inj.require(inj.PLUGIN_MANAGER)
+        cp_provider = inj.require(inj.CP_PROVIDER)
+        cp = cp_provider.get_consumer_auth_cp()
+
+        # If quantity is None, server will assume 1. pre_subscribe will
+        # report the same.
+        plugin_manager.run("pre_subscribe",
+                            consumer_uuid=consumer_uuid,
+                            pool_id=pool,
+                            quantity=quantity)
+        try:
+            ents = cp.bindByEntitlementPool(consumer_uuid, pool, quantity)
+            plugin_manager.run("post_subscribe",
+                                consumer_uuid=consumer_uuid, entitlement_data=ents)
+            attached_ents += ents
+        except connection.RestlibException, re:
+            errors.append(re)
+            log.exception(re)
+        return attached_ents, errors
+
+    def pools_attached_from_ent(self, pool, ent):
+        attached_pools = []
+        pool_json = ent['pool']
+
+        # poolprinter?
+        # FIXME
+        print _("Successfully attached a subscription for: %s") % pool_json['productName']
+        log.info("Successfully attached a subscription for: %s (%s)" %
+                (pool_json['productName'], pool))
+
+        attached_pools.append(pool_json)
+        return attached_pools
+
+
+class AutoAttach(Attach):
+    def __init__(self, consumer_uuid, service_level=None):
+        self.service_level = service_level
+        self.consumer_uuid = consumer_uuid
+        self.return_code = 0
+        self.installed_product_status = None
+
+    def pre_attach(self):
+        super(AutoAttach, self).pre_attach()
+        if self.service_level is not None:
+            self.cp.updateConsumer(self.consumer_uuid,
+                                   service_level=self.service_level)
+            # FIXME: remove print se
+            print(_("Service level set to: %s") % self.service_level)
+
+    def attach(self):
+        # the actual attach
+        log.info("Attempting to autoattach via attach command")
+
+        attached_pools = self.autosubscribe()
+        return attached_pools
+
+    def autosubscribe(self):
+
+        log.debug("autosubscribe")
+        # FIXME: this should be after pre_auto_attach?
+        if self._fully_subscribed():
+            return []
+
+        cp_provider = inj.require(inj.CP_PROVIDER)
+        cp = cp_provider.get_consumer_auth_cp()
+        plugin_manager = inj.require(inj.PLUGIN_MANAGER)
+        attached_pools = []
+
+        try:
+            plugin_manager.run("pre_auto_attach", consumer_uuid=self.consumer_uuid)
+            ents = cp.bind(self.consumer_uuid)  # new style
+            log.debug("ents %s", ents)
+            plugin_manager.run("post_auto_attach",
+                               consumer_uuid=self.consumer_uuid,
+                               entitlement_data=ents)
+
+        except Exception, e:
+            log.warning("Error during auto-attach.")
+            log.exception(e)
+
+        log.debug(ents)
+
+        if ents:
+            for ent in ents:
+                # FIXME: wrapper around cp.bind to return a list of Entitlements
+                # with Pools
+                attached_pools.append(ent['pool'])
+
+        return attached_pools
+
+    def post_attach(self):
+        super(AutoAttach, self).post_attach()
+
+        # run this after entcertlib update, so we have the new entitlements.
+        # self.auto_attach runs the ent
+        self.installed_product_status = get_installed_product_status()
+
+        # TODO: what is the return code for auto attach represent?
+        #       0 on any subscription, 0 if all subscribed?
+        #       0 if nothing is invalid?
+        self.return_code = int(self.any_unsubscribed(self.installed_product_status))
+
+    def display(self):
+        self.print_installed_product_status(self.installed_product_status)
+
+    def any_unsubscribed(self, installed_product_status):
+        """Return True if anything is not subscribed."""
+        # This considers any subscription as enough to for cli to return True
+        return any([prod_status[4] != SUBSCRIBED
+                    for prod_status in installed_product_status])
+
+    # FIXME/TODO: I suspect we no longer need this.
+    def _fully_subscribed(self):
+        # if we are green, we don't need to go to the server
+        sorter = inj.require(inj.CERT_SORTER)
+
+        installed_product_status = get_installed_product_status()
+
+        if sorter.is_valid():
+            log.debug("is_valid")
+
+            # FIXME: use display hooks
+            if not installed_product_status:
+                print _("No Installed products on system. "
+                        "No need to attach subscriptions.")
+                return True
+
+            print _("All installed products are covered by valid entitlements. "
+                    "No need to update subscriptions at this time.")
+            # FIXME:  nothing to do return code?
+            return True
+
+        log.debug("seems to be fully subscribed")
+
+        return False
+
+
+class RegisterAutoAttach(AutoAttach):
+    def _fully_subscribed(self):
+        return False
+
+    def post_attached(self):
+        """RegisterCommand will handle all this itself."""
+        pass
+
+    def display(self):
+        """RegisterCommand will handle all this itself."""
+        pass
+
+    def request_validity_check(self):
+        """RegisterCommand will handle all this itself."""
+        pass
 
 
 class CliCommand(AbstractCLICommand):
@@ -560,6 +847,7 @@ class UserPassCommand(CliCommand):
             password = getpass.getpass(_("Password: "))
         return (username.strip(), password.strip())
 
+        # show current entitlement status
     # lazy load the username and password, prompting for them if they weren't
     # given as options. this lets us not prompt if another option fails,
     # or we don't need them.
@@ -1128,11 +1416,19 @@ class RegisterCommand(UserPassCommand):
             self.cp.updateConsumer(consumer['uuid'], release=self.options.release)
 
         if self.autoattach:
+            log.info("Attempting to autoattach the system as part of registration.")
+
             if 'serviceLevel' not in consumer and self.options.service_level:
                 system_exit(os.EX_UNAVAILABLE, _("Error: The --servicelevel option is not supported "
                                  "by the server. Did not complete your request."))
-            autosubscribe(self.cp, consumer['uuid'],
-                    service_level=self.options.service_level)
+            #autosubscribe(self.cp, consumer['uuid'],
+            #        service_level=self.options.service_level)
+
+            # Maybe a RegisterAutoAttach() ?
+            attach = RegisterAutoAttach(consumer_uuid=consumer['uuid'],
+                                        service_level=self.options.service_level)
+
+            attach.run()
 
         if (self.options.consumerid or self.options.activation_keys or self.autoattach):
             log.info("System registered, updating entitlements if needed")
@@ -1145,7 +1441,10 @@ class RegisterCommand(UserPassCommand):
             # update with latest cert info
             self.sorter = inj.require(inj.CERT_SORTER)
             self.sorter.force_cert_check()
-            subscribed = show_autosubscribe_output(self.cp)
+            installed_product_status = get_installed_product_status()
+            res_lines = format_installed_product_status(installed_product_status)
+            # TODO: display method
+            print '\n'.join(res_lines)
 
         self._request_validity_check()
         return subscribed
@@ -1461,78 +1760,11 @@ class AttachCommand(CliCommand):
             system_exit(os.EX_USAGE, _("Invalid pool ids: %s"),
                         friendly_join(invalid_pool_ids))
 
-    def attach_pool(self, pool):
-        """attach/subscribe/bind to a particular pool, and return the list of entitlements."""
-        attached_ents = []
-        errors = []
-
-        # If quantity is None, server will assume 1. pre_subscribe will
-        # report the same.
-        self.plugin_manager.run("pre_subscribe",
-                                consumer_uuid=self.identity.uuid,
-                                pool_id=pool,
-                                quantity=self.options.quantity)
-        try:
-            ents = self.cp.bindByEntitlementPool(self.identity.uuid, pool, self.options.quantity)
-            self.plugin_manager.run("post_subscribe", consumer_uuid=self.identity.uuid, entitlement_data=ents)
-            attached_ents += ents
-        except connection.RestlibException, re:
-            errors.append(re)
-            log.exception(re)
-        return attached_ents, errors
-
-    def _is_recoverable_error(self, error):
-        # Errors we can keep going
-        #  PoolAlreadyAttached(pool, error)
-        #  PoolDoesntExist(pool, error)
-        # Errors we give up
-        #  PoolAttachError(pool, error)
-
-        # try:
-        #    raise error
-        # except (PoolDoesntExist, PoolAttachError), e:
-        #    print e
-        # else:
-        #   raise
-
-        if re.code == 403:
-            # raise
-            print re.msg  # already subscribed.
-        elif re.code == 400 or re.code == 404:
-            print re.msg  # no such pool.
-        else:
-            # TODO
-            # FIXME: raise an particular exception
-            system_exit(os.EX_SOFTWARE, re.msg)  # some other error.. don't try again
-
-    def pools_attached_from_ents(self, pool, ents):
-        attached_pools = []
-        for ent in ents:
-            pool_json = ent['pool']
-
-            # poolprinter?
-            print _("Successfully attached a subscription for: %s") % pool_json['productName']
-            log.info("Successfully attached a subscription for: %s (%s)" %
-                    (pool_json['productName'], pool))
-
-            attached_pools.append(pool_json)
-        return attached_pools
-
-    def attach_pools(self, pools):
-        attached_pools = []
-        for pool in pools:
-            attached_ents, errors = self.attach_pool(pool)
-            for attached_ent in attached_ents:
-                attached_pools += self.pools_attached_from_ents(pool, attached_ent)
-
-        for error in errors:
-            self._is_recoverable_error(error)
-        return attached_pools
-
     def _do_command(self):
         """
         Executes the command.
         """
+
         self._validate_options()
 
         self.assert_should_be_registered()
@@ -1547,92 +1779,15 @@ class AttachCommand(CliCommand):
                                     "supported by the server. Did not "
                                     "complete your request."))
 
-        auto_attach = True
-        # --pool or --file turns off default auto attach
         if self.options.pool or self.options.file:
-            auto_attach = False
+            attach = PoolAttach(consumer_uuid=self.identity.uuid,
+                                pools=self.options.pool,
+                                quantity=self.options.quantity)
+        else:
+            attach = AutoAttach(consumer_uuid=self.identity.uuid,
+                                service_level=self.options.service_level)
 
-        return_code = 0
-
-        try:
-            cert_action_client = ActionClient()
-            cert_action_client.update()
-            log.debug("cert_action_client post")
-        except Exception, e:
-            handle_exception("Unable to attach: %s" % e, e)
-
-        attached_pools = []
-        if self.options.pool:
-            try:
-                attached_pools = self.attach_pools(self.options.pool)
-            except Exception, e:
-                handle_exception("Unable to attach: %s" % e, e)
-
-            # TODO: decide this later
-            if not attached_pools:
-                return_code = 1
-
-            self._request_validity_check()
-            return return_code
-
-        if not auto_attach:
-            return return_code
-
-        attached_pools = self.auto_attach(self.options.service_level)
-
-        self.sorter.force_cert_check()
-
-        # run this after entcertlib update, so we have the new entitlements
-        return_code = show_autosubscribe_output(self.cp)
-
-        # it is okay to call this no matter what happens above,
-        # it's just a notification to perform a check
-        self._request_validity_check()
-        return return_code
-
-    def _fully_subscribed(self):
-        products_installed = len(get_installed_product_status(self.cp))
-        # if we are green, we don't need to go to the server
-        self.sorter = inj.require(inj.CERT_SORTER)
-
-        log.debug("sorter %s", self.sorter)
-        if self.sorter.is_valid():
-            log.debug("is_valid")
-            if not products_installed:
-                print _("No Installed products on system. "
-                        "No need to attach subscriptions.")
-                return True
-
-            print _("All installed products are covered by valid entitlements. "
-                    "No need to update subscriptions at this time.")
-            # FIXME:  nothing to do return code?
-            return True
-
-        log.debug("seems to be fully subscribed")
-
-        return False
-
-    def auto_attach(self, service_level):
-        # auto attach
-
-        # FIXME
-        # TODO: do we need/want this? Shouldn't we always try to
-        #       to autosubscribe at this point?
-        if self._fully_subscribed():
-            return []
-
-        # the actual attach
-        attached_pools = autosubscribe(self.cp, self.identity.uuid,
-                                       service_level=self.options.service_level)
-
-        report = EntCertActionInvoker().update()
-
-        if report and report.exceptions():
-            print _('Entitlement Certificate(s) update failed due to the following reasons:')
-            for e in report.exceptions():
-                print '\t-', str(e)
-
-        return attached_pools
+        return attach.run()
 
 
 class SubscribeCommand(AttachCommand):
@@ -2227,8 +2382,9 @@ class ListCommand(CliCommand):
         self._validate_options()
 
         if self.options.installed and not self.options.pid_only:
-            iproducts = get_installed_product_status(self.cp, self.options.filter_string)
+            iproducts = get_installed_product_status(self.options.filter_string)
 
+            # TODO: this mostly duplicates format_installed_product_status
             if len(iproducts):
                 print "+-------------------------------------------+"
                 print _("    Installed Product Status")
