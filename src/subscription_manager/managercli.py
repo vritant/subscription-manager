@@ -1607,7 +1607,6 @@ class AttachCommand(CliCommand):
         elif self.options.auto:
             if not products_installed:
                 return_code = 1
->>>>>>> Refactor 'attach --pool' a bit
             else:
                 self.sorter.force_cert_check()
                 # run this after entcertlib update, so we have the new entitlements
