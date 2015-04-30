@@ -306,12 +306,6 @@ class RepoUpdateActionCommand(object):
             # it to the locally defined
             # NOTE: would we want a config option to always override cdn with
             # the local value?
-	    # FIXME: move to from_ent_cert_content, this is
-	    # just for a rebase
-            if content.cdn:
-                repo['baseurl'] = self.join(content.cdn, self._use_release_for_releasever(content.url))
-            if content.ca_cert:
-                repo['sslcacert'] = content.ca_cert
             repo = Repo.from_ent_cert_content(content, baseurl, ca_cert,
                                               release_source)
 
@@ -340,7 +334,6 @@ class RepoUpdateActionCommand(object):
         written_value = self.written_overrides.overrides.get(repo.id, {}).get(key)
         # Compare values as strings to avoid casting problems from io
         return written_value is not None and value is not None and str(written_value) == str(value)
-
 
     def _build_props(self, old_repo, new_repo):
         result = {}
@@ -513,6 +506,8 @@ class Repo(dict):
             repo['enabled'] = "0"
 
         expanded_url_path = Repo._expand_releasever(release_source, content.url)
+        if content.cdn:
+            baseurl = content.cdn
         repo['baseurl'] = utils.url_base_join(baseurl, expanded_url_path)
 
         # Extract the variables from the url
@@ -532,7 +527,13 @@ class Repo(dict):
 
         repo['sslclientkey'] = content.cert.key_path()
         repo['sslclientcert'] = content.cert.path
+
+        # TODO: resolve the content.ca_cert to a on disk ca cert, or make
+        # sure python-rhsm does it.
+        if content.ca_cert:
+            ca_cert = content.ca_cert
         repo['sslcacert'] = ca_cert
+
         repo['metadata_expire'] = content.metadata_expire
 
         repo = Repo._set_proxy_info(repo)
