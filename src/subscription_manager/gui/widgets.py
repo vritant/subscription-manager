@@ -44,6 +44,7 @@ GLADE_DIR = os.path.join(os.path.dirname(__file__), "data")
 WARNING_COLOR = '#FFFB82'
 EXPIRED_COLOR = '#FFAF99'
 
+log = logging.getLogger("rhsm-app." + __name__)
 # Some versions of gtk has incorrect translations for the calendar widget
 # and gtk itself complains about this with errors like:
 #
@@ -69,6 +70,7 @@ class FileBasedGui(object):
     gui_file = None
 
     def gui_file_path(self):
+        log.debug("loading gui file %s", os.path.join(self.file_dir, self.gui_file))
         return os.path.join(self.file_dir, self.gui_file)
 
 
@@ -80,6 +82,7 @@ class BuilderFileBasedWidget(FileBasedGui):
     def from_file(cls, builder_file):
         builder_based_widget = cls()
         builder_based_widget.gui_file = builder_file
+        builder_based_widget.file_dir = ga.GTK_BUILDER_FILES_DIR
 
         builder_based_widget._load_file()
 
@@ -106,6 +109,7 @@ class BuilderFileBasedWidget(FileBasedGui):
         return self.builder.connect_signals(handlers_dict)
 
 
+# FIXME: not actually a widget, just an object that has a widget
 class SubmanBaseWidget(object):
     widget_names = []
     gui_file = None

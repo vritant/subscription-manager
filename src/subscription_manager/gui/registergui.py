@@ -88,6 +88,7 @@ CONFIRM_SUBS_PAGE = 7
 PERFORM_SUBSCRIBE_PAGE = 8
 REFRESH_SUBSCRIPTIONS_PAGE = 9
 INFO_PAGE = 10
+DONE_PAGE = 11
 FINISH = 100
 
 REGISTER_ERROR = _("<b>Unable to register the system.</b>") + \
@@ -120,6 +121,10 @@ def reset_resolver():
     except Exception, e:
         log.warning("reset_resolver failed: %s", e)
         pass
+
+
+class RegistrationBox(widgets.SubmanBaseWidget):
+    gui_file = "registration_box.glade"
 
 
 class RegisterScreen(widgets.SubmanBaseWidget):
@@ -275,14 +280,14 @@ class RegisterScreen(widgets.SubmanBaseWidget):
 
         log.debug("self.register_dialog %s", self.register_dialog)
         self.window = self.register_dialog
-        #self.register_dialog.set_transient_for(self.parent)
+        self.register_dialog.set_transient_for(self.parent)
 
         screen_classes = [ChooseServerScreen, ActivationKeyScreen,
                           CredentialsScreen, OrganizationScreen,
                           EnvironmentScreen, PerformRegisterScreen,
                           SelectSLAScreen, ConfirmSubscriptionsScreen,
                           PerformSubscribeScreen, RefreshSubscriptionsScreen,
-                          InfoScreen]
+                          InfoScreen, DoneScreen]
         self._screens = []
         for screen_class in screen_classes:
             screen = screen_class(self, self.backend)
@@ -422,6 +427,9 @@ class RegisterScreen(widgets.SubmanBaseWidget):
     def emit_consumer_signal(self):
         for method in self.callbacks:
             method()
+
+    def done(self):
+        self._set_screen(DONE_PAGE)
 
     def close_window(self):
         set_state(REGISTERING)
@@ -1429,6 +1437,14 @@ class AsyncBackend(object):
         threading.Thread(target=self._refresh,
                          name="RefreshThread",
                          args=(callback,)).start()
+
+
+class DoneScreen(Screen):
+    gui_file = "done_box.glade"
+
+    def __init__(self, parent, backend):
+        super(DoneScreen, self).__init__(parent, backend)
+        self.pre_message = "We are done."
 
 
 class InfoScreen(Screen):
