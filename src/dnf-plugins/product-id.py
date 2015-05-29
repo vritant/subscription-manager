@@ -15,6 +15,7 @@
 
 import sys
 import collections
+import logging
 
 from dnfpluginscore import _, logger
 import dnf
@@ -28,27 +29,16 @@ from subscription_manager.utils import chroot
 from subscription_manager.injectioninit import init_dep_injection
 
 
-class PackageManager(object):
-    _enabled = []
-    _active = []
-    _repos_with_errors = collections.defaultdict(list)
-
-    @property
-    def enabled(self):
-        return self._enabled
-
-    @property
-    def active(self):
-        return self._active
-
-    @property
-    def repos_with_errors(self):
-        return self._repos_with_errors
+class DnfProductIdError(productid.ProductIdError):
+    pass
 
 
-class DnfPackageManager(PackageManager):
+class DnfPackageManager(object):
     def __init__(self, base):
         self.base = base
+        self.repos_with_errors = collections.defaultdict(list)
+        self.log = logging.getLogger('rhsm-app.' + __name__ +
+                                     self.__class__.__name__)
 
     def _download_productid(self, repo):
         with dnf.util.tmpdir() as tmpdir:
@@ -56,7 +46,13 @@ class DnfPackageManager(PackageManager):
             handle.setopt(librepo.LRO_PROGRESSCB, None)
             handle.setopt(librepo.LRO_YUMDLIST, [productid.PRODUCTID])
             res = handle.perform()
-        return res.yum_repo.get(productid.PRODUCTID, None)
+
+        fn = res.yum_repo.get(productid.PRODUCTID, None)
+
+        if not fn:
+            raise DnfProductIdError("Unable download product from repo: %s" % repo.id)
+
+        return fn
 
     def get_enabled(self):
         """find repos that are enabled"""
@@ -69,24 +65,16 @@ class DnfPackageManager(PackageManager):
                 # We have to look in all repos for productids, not just
                 # the ones we create, or anaconda doesn't install it.
                 fn = self._download_productid(repo)
-                if not fn:
-                    self._repos_with_errors[repo.id].append(repo.id)
-                    continue
-
-                # Make _get_cert raise an exception
                 cert = productid._get_cert(fn)
-                if cert is None:
-                    # and then append it to the errors for that repo
-                    continue
                 lst.append((cert, repo.id))
             except Exception, e:
-                log.warn("Error loading productid metadata for %s." % repo)
-                log.exception(e)
+                self.log.warn("Error loading productid metadata for %s." % repo)
+                self.log.exception(e)
                 self._repos_with_errors[repo.id].append(e)
 
         if self.repos_with_errors:
-            log.debug("Unable to load productid metadata for repos: %s",
-                      self.repos_with_errors)
+            self.log.debug("Unable to load productid metadata for repos: %s",
+                            self.repos_with_errors.keys())
         return lst
 
     # find the list of repo's that provide packages that
@@ -103,7 +91,7 @@ class DnfPackageManager(PackageManager):
             if (p.name, p.arch) in installed_na:
                 active.add(p.repoid)
 
-        return active
+        return list(active)
 
     def check_version_tracks_repos(self):
         return True
@@ -135,9 +123,8 @@ class ProductId(dnf.Plugin):
         chroot(self.base.conf.installroot)
         try:
             pm = productid.ProductManager()
-            dnfpm = DnfPackageManager(self.base)
-            pm.update(package_manager=dnfpm)
+            dnf_pm = DnfPackageManager(self.base)
+            pm.update(package_manager=dnf_pm)
             logger.info(_('Installed products updated.'))
         except Exception as e:
             logger.error(str(e))
-
