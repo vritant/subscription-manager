@@ -14,16 +14,99 @@
 #
 
 import sys
+import collections
+
+from dnfpluginscore import _, logger
+import dnf
+import librepo
 
 sys.path.append('/usr/share/rhsm')
 
 from subscription_manager import logutil
-from subscription_manager.productid import ProductManager, package_manager
+from subscription_manager import productid
 from subscription_manager.utils import chroot
 from subscription_manager.injectioninit import init_dep_injection
 
-from dnfpluginscore import _, logger
-import dnf
+
+class PackageManager(object):
+    _enabled = []
+    _active = []
+    _repos_with_errors = collections.defaultdict(list)
+
+    @property
+    def enabled(self):
+        return self._enabled
+
+    @property
+    def active(self):
+        return self._active
+
+    @property
+    def repos_with_errors(self):
+        return self._repos_with_errors
+
+
+class DnfPackageManager(PackageManager):
+    def __init__(self, base):
+        self.base = base
+
+    def _download_productid(self, repo):
+        with dnf.util.tmpdir() as tmpdir:
+            handle = repo._handle_new_remote(tmpdir)
+            handle.setopt(librepo.LRO_PROGRESSCB, None)
+            handle.setopt(librepo.LRO_YUMDLIST, [productid.PRODUCTID])
+            res = handle.perform()
+        return res.yum_repo.get(productid.PRODUCTID, None)
+
+    def get_enabled(self):
+        """find repos that are enabled"""
+        lst = []
+        enabled = self.base.repos.iter_enabled()
+
+        # skip repo's that we don't have productid info for...
+        for repo in enabled:
+            try:
+                # We have to look in all repos for productids, not just
+                # the ones we create, or anaconda doesn't install it.
+                fn = self._download_productid(repo)
+                if not fn:
+                    self._repos_with_errors[repo.id].append(repo.id)
+                    continue
+
+                # Make _get_cert raise an exception
+                cert = productid._get_cert(fn)
+                if cert is None:
+                    # and then append it to the errors for that repo
+                    continue
+                lst.append((cert, repo.id))
+            except Exception, e:
+                log.warn("Error loading productid metadata for %s." % repo)
+                log.exception(e)
+                self._repos_with_errors[repo.id].append(e)
+
+        if self.repos_with_errors:
+            log.debug("Unable to load productid metadata for repos: %s",
+                      self.repos_with_errors)
+        return lst
+
+    # find the list of repo's that provide packages that
+    # are actually installed.
+    def get_active(self):
+        """find yum repos that have packages installed"""
+        # installed packages
+        installed_na = self.base.sack.query().installed().na_dict()
+        # available version of installed
+        avail_pkgs = self.base.sack.query().available().filter(name=[k[0] for k in installed_na.keys()])
+
+        active = set()
+        for p in avail_pkgs:
+            if (p.name, p.arch) in installed_na:
+                active.add(p.repoid)
+
+        return active
+
+    def check_version_tracks_repos(self):
+        return True
 
 
 class ProductId(dnf.Plugin):
@@ -51,8 +134,10 @@ class ProductId(dnf.Plugin):
         logutil.init_logger_for_yum()
         chroot(self.base.conf.installroot)
         try:
-            pm = ProductManager()
-            pm.update(package_manager(self.base))
+            pm = productid.ProductManager()
+            dnfpm = DnfPackageManager(self.base)
+            pm.update(package_manager=dnfpm)
             logger.info(_('Installed products updated.'))
         except Exception as e:
             logger.error(str(e))
+

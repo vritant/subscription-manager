@@ -392,67 +392,6 @@ class YumWrapper:
             return True
         return False
 
-
-class DnfWrapper:
-    def __init__(self, base):
-        self.base = base
-
-    def _download_productid(self, repo):
-        with dnf.util.tmpdir() as tmpdir:
-            handle = repo._handle_new_remote(tmpdir)
-            handle.setopt(librepo.LRO_PROGRESSCB, None)
-            handle.setopt(librepo.LRO_YUMDLIST, [PRODUCTID])
-            res = handle.perform()
-        return res.yum_repo.get(PRODUCTID, None)
-
-    def get_enabled(self, meta_data_errors):
-        """find repos that are enabled"""
-        lst = []
-        enabled = self.base.repos.iter_enabled()
-
-        # skip repo's that we don't have productid info for...
-        for repo in enabled:
-            try:
-                fn = self._download_productid(repo)
-                if fn:
-                    cert = _get_cert(fn)
-                    if cert is None:
-                        continue
-                    lst.append((cert, repo.id))
-                else:
-                    # We have to look in all repos for productids, not just
-                    # the ones we create, or anaconda doesn't install it.
-                    meta_data_errors.append(repo.id)
-            except Exception, e:
-                log.warn("Error loading productid metadata for %s." % repo)
-                log.exception(e)
-                meta_data_errors.append(repo.id)
-
-        if meta_data_errors:
-            log.debug("Unable to load productid metadata for repos: %s",
-                      meta_data_errors)
-        return lst
-
-    # find the list of repo's that provide packages that
-    # are actually installed.
-    def get_active(self):
-        """find yum repos that have packages installed"""
-        # installed packages
-        installed_na = self.base.sack.query().installed().na_dict()
-        # available version of installed
-        avail_pkgs = self.base.sack.query().available().filter(name=[k[0] for k in installed_na.keys()])
-
-        active = set()
-        for p in avail_pkgs:
-            if (p.name, p.arch) in installed_na:
-                active.add(p.repoid)
-
-        return active
-
-    def check_version_tracks_repos(self):
-        return True
-
-
 class ProductManager:
     """Manager product certs, detecting when they need to be installed, or deleted.
 
