@@ -292,20 +292,23 @@ class ProductId(object):
 
     # def compare(self, other):   # version check?
 
+
 def package_manager(base=None):
     if str(base.__class__) == "<class 'yum.YumBase'>":
         import yum
         return YumWrapper(base)
     elif str(base.__class__) == "<class 'dnf.cli.cli.BaseCli'>":
         import dnf
+        import librepo
         return DnfWrapper(base)
     else:
         import yum
         return YumWrapper(yum.YumBase())
 
+
 class YumWrapper:
     def __init__(self, base):
-          self.base = base
+        self.base = base
 
     def get_enabled(self, meta_data_errors):
         """find yum repos that are enabled"""
@@ -389,9 +392,10 @@ class YumWrapper:
             return True
         return False
 
+
 class DnfWrapper:
     def __init__(self, base):
-          self.base = base
+        self.base = base
 
     def _download_productid(self, repo):
         with dnf.util.tmpdir() as tmpdir:
@@ -436,8 +440,7 @@ class DnfWrapper:
         # installed packages
         installed_na = self.base.sack.query().installed().na_dict()
         # available version of installed
-        avail_pkgs = self.base.sack.query().available().filter(name=
-                                          [k[0] for k in installed_na.keys()])
+        avail_pkgs = self.base.sack.query().available().filter(name=[k[0] for k in installed_na.keys()])
 
         active = set()
         for p in avail_pkgs:
@@ -448,6 +451,7 @@ class DnfWrapper:
 
     def check_version_tracks_repos(self):
         return True
+
 
 class ProductManager:
     """Manager product certs, detecting when they need to be installed, or deleted.
@@ -878,6 +882,7 @@ class ProductManager:
             # of the repos are active
             self.db.delete(product.id)
             self.db.write()
+
 
 def _get_cert(fn):
     if fn.endswith('.gz'):

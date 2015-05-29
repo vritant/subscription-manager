@@ -25,6 +25,7 @@ from subscription_manager.injectioninit import init_dep_injection
 from dnfpluginscore import _, logger
 import dnf
 
+
 class ProductId(dnf.Plugin):
     name = 'product-id'
 
