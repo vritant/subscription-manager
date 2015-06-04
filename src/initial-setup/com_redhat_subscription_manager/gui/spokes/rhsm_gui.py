@@ -45,7 +45,7 @@ class RHSMSpoke(FirstbootOnlySpokeMixIn, NormalSpoke):
 
     mainWidgetName = "RHSMSpokeWindow"
 
-    uiFile = "rhsm_gui.glade"
+    uiFile = "rhsm_gui.ui"
 
     category = SystemCategory
 

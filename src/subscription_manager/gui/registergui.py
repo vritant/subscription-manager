@@ -124,7 +124,7 @@ def reset_resolver():
 
 
 class RegistrationBox(widgets.SubmanBaseWidget):
-    gui_file = "registration_box.glade"
+    gui_file = "registration_box"
 
 
 class RegisterScreen(widgets.SubmanBaseWidget):
@@ -254,7 +254,7 @@ class RegisterScreen(widgets.SubmanBaseWidget):
                     'register_progressbar', 'register_details_label',
                     'cancel_button', 'register_button', 'progress_label',
                     'dialog_vbox6']
-    gui_file = "registration.glade"
+    gui_file = "registration"
     __gtype_name__ = 'RegisterScreen'
 
     def __init__(self, backend, facts=None, parent=None, callbacks=None):
@@ -586,7 +586,7 @@ class ConfirmSubscriptionsScreen(Screen):
     widget_names = Screen.widget_names + ['subs_treeview', 'back_button',
                                           'sla_label']
 
-    gui_file = "confirmsubs.glade"
+    gui_file = "confirmsubs"
 
     def __init__(self, parent, backend):
 
@@ -645,7 +645,7 @@ class SelectSLAScreen(Screen):
     widget_names = Screen.widget_names + ['product_list_label',
                                           'sla_radio_container',
                                           'owner_treeview']
-    gui_file = "selectsla.glade"
+    gui_file = "selectsla"
 
     def __init__(self, parent, backend):
         super(SelectSLAScreen, self).__init__(parent, backend)
@@ -780,7 +780,7 @@ class SelectSLAScreen(Screen):
 
 class EnvironmentScreen(Screen):
     widget_names = Screen.widget_names + ['environment_treeview']
-    gui_file = "environment.glade"
+    gui_file = "environment"
 
     def __init__(self, parent, backend):
         super(EnvironmentScreen, self).__init__(parent, backend)
@@ -837,7 +837,7 @@ class EnvironmentScreen(Screen):
 
 class OrganizationScreen(Screen):
     widget_names = Screen.widget_names + ['owner_treeview']
-    gui_file = "organization.glade"
+    gui_file = "organization"
 
     def __init__(self, parent, backend):
         super(OrganizationScreen, self).__init__(parent, backend)
@@ -907,7 +907,7 @@ class CredentialsScreen(Screen):
                                           'registration_tip_label',
                                           'registration_header_label']
 
-    gui_file = "credentials.glade"
+    gui_file = "credentials"
 
     def __init__(self, parent, backend):
         super(CredentialsScreen, self).__init__(parent, backend)
@@ -985,7 +985,7 @@ class ActivationKeyScreen(Screen):
                 'organization_entry',
                 'consumer_entry',
         ]
-    gui_file = "activation_key.glade"
+    gui_file = "activation_key"
 
     def __init__(self, parent, backend):
         super(ActivationKeyScreen, self).__init__(parent, backend)
@@ -1075,7 +1075,7 @@ class ChooseServerScreen(Screen):
     widget_names = Screen.widget_names + ['server_entry', 'proxy_frame',
                                           'default_button', 'choose_server_label',
                                           'activation_key_checkbox']
-    gui_file = "choose_server.glade"
+    gui_file = "choose_server"
 
     def __init__(self, parent, backend):
 
@@ -1440,7 +1440,7 @@ class AsyncBackend(object):
 
 
 class DoneScreen(Screen):
-    gui_file = "done_box.glade"
+    gui_file = "done_box"
 
     def __init__(self, parent, backend):
         super(DoneScreen, self).__init__(parent, backend)
@@ -1460,7 +1460,7 @@ class InfoScreen(Screen):
                 'skip_radio',
                 'why_register_dialog'
         ]
-    gui_file = "registration_info.glade"
+    gui_file = "registration_info"
 
     def __init__(self, parent, backend):
         super(InfoScreen, self).__init__(parent, backend)

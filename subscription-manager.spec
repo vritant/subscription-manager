@@ -415,8 +415,12 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %dir %{_datadir}/rhsm/subscription_manager/gui
 %dir %{_datadir}/rhsm/subscription_manager/gui/data
+%dir %{_datadir}/rhsm/subscription_manager/gui/data/ui
+%dir %{_datadir}/rhsm/subscription_manager/gui/data/glade
 %dir %{_datadir}/rhsm/subscription_manager/gui/data/icons
 %{_datadir}/rhsm/subscription_manager/gui/*
+%{_datadir}/rhsm/subscription_manager/gui/data/ui/*.ui
+%{_datadir}/rhsm/subscription_manager/gui/data/glade/*.glade
 %{_datadir}/rhsm/subscription_manager/gui/data/icons/*.svg
 %{_datadir}/applications/subscription-manager-gui.desktop
 %{_datadir}/icons/hicolor/16x16/apps/*.png
@@ -466,7 +470,7 @@ rm -rf %{buildroot}
 %dir %{_datadir}/anaconda/addons/com_redhat_subscription_manager/ks/
 %{_datadir}/anaconda/addons/com_redhat_subscription_manager/*.py*
 %{_datadir}/anaconda/addons/com_redhat_subscription_manager/gui/*.py*
-%{_datadir}/anaconda/addons/com_redhat_subscription_manager/gui/spokes/*.glade
+%{_datadir}/anaconda/addons/com_redhat_subscription_manager/gui/spokes/*.ui
 %{_datadir}/anaconda/addons/com_redhat_subscription_manager/gui/spokes/*.py*
 %{_datadir}/anaconda/addons/com_redhat_subscription_manager/gui/categories/*.py*
 %{_datadir}/anaconda/addons/com_redhat_subscription_manager/ks/*.py*
