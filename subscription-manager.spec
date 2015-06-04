@@ -262,23 +262,62 @@ rm -rf %{buildroot}
 %files -f rhsm.lang
 %defattr(-,root,root,-)
 
-%attr(755,root,root) %dir %{_var}/log/rhsm
-%attr(755,root,root) %dir %{_var}/spool/rhsm/debug
+# executables
+%attr(755,root,root) %{_sbindir}/subscription-manager
+
+%attr(755,root,root) %{_bindir}/subscription-manager
+%attr(755,root,root) %{_bindir}/rhsmcertd
+
+%attr(755,root,root) %{_libexecdir}/rhsmcertd-worker
+%attr(755,root,root) %{_libexecdir}/rhsmd
+
+# init scripts and systemd services
+%if %use_systemd
+    %attr(644,root,root) %{_unitdir}/rhsmcertd.service
+    %attr(644,root,root) %{_tmpfilesdir}/%{name}.conf
+%else
+    %attr(755,root,root) %{_initrddir}/rhsmcertd
+%endif
+
+# our config dirs and files
 %attr(755,root,root) %dir %{_sysconfdir}/rhsm
+%attr(644,root,root) %config(noreplace) %{_sysconfdir}/rhsm/rhsm.conf
+%config(noreplace) %attr(644,root,root) %{_sysconfdir}/rhsm/logging.conf
+
 %attr(755,root,root) %dir %{_sysconfdir}/rhsm/facts
+
 %attr(755,root,root) %dir %{_sysconfdir}/pki/consumer
 %attr(755,root,root) %dir %{_sysconfdir}/pki/entitlement
 
-%attr(644,root,root) %config(noreplace) %{_sysconfdir}/rhsm/rhsm.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/com.redhat.SubscriptionManager.conf
 
-#remove the repo file when we are deleted
+# PAM config
+%{_sysconfdir}/pam.d/subscription-manager
+%{_sysconfdir}/security/console.apps/subscription-manager
+
+# remove the repo file when we are deleted
 %ghost %{_sysconfdir}/yum.repos.d/redhat.repo
 
-%config(noreplace) %attr(644,root,root) %{_sysconfdir}/rhsm/logging.conf
+# yum plugin config
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/yum/pluginconf.d/subscription-manager.conf
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/yum/pluginconf.d/product-id.conf
+
+# misc system config
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/logrotate.d/subscription-manager
+%attr(700,root,root) %{_sysconfdir}/cron.daily/rhsmd
+%{_datadir}/dbus-1/system-services/com.redhat.SubscriptionManager.service
+
+
+# /var
+%attr(755,root,root) %dir %{_var}/log/rhsm
+%attr(755,root,root) %dir %{_var}/spool/rhsm/debug
+%attr(755,root,root) %dir %{_var}/run/rhsm
+%attr(755,root,root) %dir %{_var}/lib/rhsm
+%attr(755,root,root) %dir %{_var}/lib/rhsm/facts
+%attr(755,root,root) %dir %{_var}/lib/rhsm/packages
+%attr(755,root,root) %dir %{_var}/lib/rhsm/cache
+
+# bash completion scripts
 %{_sysconfdir}/bash_completion.d/subscription-manager
 %{_sysconfdir}/bash_completion.d/rct
 %{_sysconfdir}/bash_completion.d/rhsm-debug
@@ -286,75 +325,29 @@ rm -rf %{buildroot}
 %{_sysconfdir}/bash_completion.d/rhsm-icon
 %{_sysconfdir}/bash_completion.d/rhsmcertd
 
-%attr(700,root,root) %{_sysconfdir}/cron.daily/rhsmd
-%{_datadir}/dbus-1/system-services/com.redhat.SubscriptionManager.service
 
+# code
+# python package dirs
 %dir %{_datadir}/rhsm
 %dir %{_datadir}/rhsm/subscription_manager
 %dir %{_datadir}/rhsm/subscription_manager/branding
 %dir %{_datadir}/rhsm/subscription_manager/model
 %dir %{_datadir}/rhsm/subscription_manager/plugin
+%dir %{_datadir}/rhsm/subscription_manager/ga
+%dir %{_datadir}/rhsm/subscription_manager/ga/ga_gtk2
 
+# code, python modules and packages
 %{_datadir}/rhsm/subscription_manager/*.py*
-%{_datadir}/rhsm/subscription_manager/branding/*.py*
-%{_datadir}/rhsm/subscription_manager/model/*.py*
-%{_datadir}/rhsm/subscription_manager/async.py*
-%{_datadir}/rhsm/subscription_manager/base_action_client.py*
-%{_datadir}/rhsm/subscription_manager/base_plugin.py*
-%{_datadir}/rhsm/subscription_manager/branding
-%{_datadir}/rhsm/subscription_manager/cache.py*
-%{_datadir}/rhsm/subscription_manager/certdirectory.py*
-%{_datadir}/rhsm/subscription_manager/certlib.py*
-%{_datadir}/rhsm/subscription_manager/content_action_client.py*
-%{_datadir}/rhsm/subscription_manager/action_client.py*
-%{_datadir}/rhsm/subscription_manager/cert_sorter.py*
-%{_datadir}/rhsm/subscription_manager/cli.py*
-%{_datadir}/rhsm/subscription_manager/dbus_interface.py*
 
-%{_datadir}/rhsm/subscription_manager/dmiinfo.py*
-%{_datadir}/rhsm/subscription_manager/entcertlib.py*
-%{_datadir}/rhsm/subscription_manager/entbranding.py*
-%{_datadir}/rhsm/subscription_manager/cp_provider.py*
-%{_datadir}/rhsm/subscription_manager/factlib.py*
-%{_datadir}/rhsm/subscription_manager/facts.py*
-%{_datadir}/rhsm/subscription_manager/healinglib.py*
-%{_datadir}/rhsm/subscription_manager/hwprobe.py*
-%{_datadir}/rhsm/subscription_manager/isodate.py*
-%{_datadir}/rhsm/subscription_manager/i18n_optparse.py*
-%{_datadir}/rhsm/subscription_manager/i18n.py*
-%{_datadir}/rhsm/subscription_manager/identity.py*
-%{_datadir}/rhsm/subscription_manager/identitycertlib.py*
-%{_datadir}/rhsm/subscription_manager/injection.py*
-%{_datadir}/rhsm/subscription_manager/injectioninit.py*
-%{_datadir}/rhsm/subscription_manager/__init__.py*
-%{_datadir}/rhsm/subscription_manager/installedproductslib.py*
-%{_datadir}/rhsm/subscription_manager/jsonwrapper.py*
-%{_datadir}/rhsm/subscription_manager/listing.py*
-%{_datadir}/rhsm/subscription_manager/lock.py*
-%{_datadir}/rhsm/subscription_manager/logutil.py*
-%{_datadir}/rhsm/subscription_manager/managercli.py*
-%{_datadir}/rhsm/subscription_manager/managerlib.py*
-%{_datadir}/rhsm/subscription_manager/model
-%{_datadir}/rhsm/subscription_manager/model/*.py
-%{_datadir}/rhsm/subscription_manager/packageprofilelib.py*
-%{_datadir}/rhsm/subscription_manager/plugins.py*
-%{_datadir}/rhsm/subscription_manager/productid.py*
-%{_datadir}/rhsm/subscription_manager/reasons.py*
-%{_datadir}/rhsm/subscription_manager/release.py*
-%{_datadir}/rhsm/subscription_manager/repolib.py*
-%{_datadir}/rhsm/subscription_manager/rhelentbranding.py*
-%{_datadir}/rhsm/subscription_manager/rhelproduct.py*
-%{_datadir}/rhsm/subscription_manager/utils.py*
-%{_datadir}/rhsm/subscription_manager/printing_utils.py*
-%{_datadir}/rhsm/subscription_manager/validity.py*
-%{_datadir}/rhsm/subscription_manager/reasons.py*
-%{_datadir}/rhsm/subscription_manager/cp_provider.py*
-%{_datadir}/rhsm/subscription_manager/file_monitor.py*
-%{_datadir}/rhsm/subscription_manager/overrides.py*
-%{_datadir}/rhsm/subscription_manager/exceptions.py*
+%{_datadir}/rhsm/subscription_manager/branding/*.py*
+
+%{_datadir}/rhsm/subscription_manager/ga/*.py*
+%{_datadir}/rhsm/subscription_manager/ga/ga_gtk2/*.py*
+
+%{_datadir}/rhsm/subscription_manager/model/*.py*
+
 %{_datadir}/rhsm/subscription_manager/plugin/*.py*
 
-%{_datadir}/rhsm/subscription_manager/version.py*
 # subscription-manager plugins
 %dir %{rhsm_plugins_dir}
 %dir %{_sysconfdir}/rhsm/pluginconf.d
@@ -366,25 +359,6 @@ rm -rf %{buildroot}
 %{_prefix}/lib/yum-plugins/subscription-manager.py*
 %{_prefix}/lib/yum-plugins/product-id.py*
 
-%attr(755,root,root) %{_sbindir}/subscription-manager
-%attr(755,root,root) %{_bindir}/subscription-manager
-%attr(755,root,root) %{_bindir}/rhsmcertd
-%attr(755,root,root) %{_libexecdir}/rhsmcertd-worker
-%attr(755,root,root) %{_libexecdir}/rhsmd
-%attr(755,root,root) %dir %{_var}/run/rhsm
-%attr(755,root,root) %dir %{_var}/lib/rhsm
-%attr(755,root,root) %dir %{_var}/lib/rhsm/facts
-%attr(755,root,root) %dir %{_var}/lib/rhsm/packages
-%attr(755,root,root) %dir %{_var}/lib/rhsm/cache
-%{_sysconfdir}/pam.d/subscription-manager
-%{_sysconfdir}/security/console.apps/subscription-manager
-
-%if %use_systemd
-    %attr(644,root,root) %{_unitdir}/rhsmcertd.service
-    %attr(644,root,root) %{_tmpfilesdir}/%{name}.conf
-%else
-    %attr(755,root,root) %{_initrddir}/rhsmcertd
-%endif
 
 # Incude rt CLI tool
 %dir %{_datadir}/rhsm/rct
@@ -413,12 +387,14 @@ rm -rf %{buildroot}
 
 %files -n subscription-manager-gui
 %defattr(-,root,root,-)
+%attr(755,root,root) %{_sbindir}/subscription-manager-gui
+%attr(755,root,root) %{_bindir}/subscription-manager-gui
+%{_bindir}/rhsm-icon
 %dir %{_datadir}/rhsm/subscription_manager/gui
 %dir %{_datadir}/rhsm/subscription_manager/gui/data
 %dir %{_datadir}/rhsm/subscription_manager/gui/data/ui
 %dir %{_datadir}/rhsm/subscription_manager/gui/data/glade
 %dir %{_datadir}/rhsm/subscription_manager/gui/data/icons
-%{_datadir}/rhsm/subscription_manager/gui/*
 %{_datadir}/rhsm/subscription_manager/gui/data/ui/*.ui
 %{_datadir}/rhsm/subscription_manager/gui/data/glade/*.glade
 %{_datadir}/rhsm/subscription_manager/gui/data/icons/*.svg
@@ -431,13 +407,13 @@ rm -rf %{buildroot}
 %{_datadir}/icons/hicolor/96x96/apps/*.png
 %{_datadir}/icons/hicolor/256x256/apps/*.png
 %{_datadir}/icons/hicolor/scalable/apps/*.svg
-%attr(755,root,root) %{_sbindir}/subscription-manager-gui
-%attr(755,root,root) %{_bindir}/subscription-manager-gui
 %{_datadir}/appdata/subscription-manager-gui.appdata.xml
 
-%{_bindir}/rhsm-icon
-%{_sysconfdir}/xdg/autostart/rhsm-icon.desktop
+# code and modules
+%{_datadir}/rhsm/subscription_manager/gui/*.py*
 
+# gui system config files
+%{_sysconfdir}/xdg/autostart/rhsm-icon.desktop
 %{_sysconfdir}/pam.d/subscription-manager-gui
 %{_sysconfdir}/security/console.apps/subscription-manager-gui
 %{_sysconfdir}/bash_completion.d/subscription-manager-gui
@@ -448,8 +424,8 @@ rm -rf %{buildroot}
 %{_datadir}/omf/subscription-manager
 %attr(644,root,root) %{_datadir}/omf/subscription-manager/*.omf
 %{_datadir}/gnome/help/subscription-manager
-%attr(644,root,root) %{_datadir}/gnome/help/subscription-manager/C/*
-%attr(755,root,root) %{_datadir}/gnome/help/subscription-manager/C/figures
+%attr(644,root,root) %{_datadir}/gnome/help/subscription-manager/C/*.xml
+%attr(755,root,root) %{_datadir}/gnome/help/subscription-manager/C/figures/*.png
 %doc LICENSE
 
 %files -n subscription-manager-firstboot
