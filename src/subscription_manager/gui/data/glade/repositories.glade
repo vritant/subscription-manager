@@ -4,7 +4,8 @@
     <property name="text">Manage the repositories your subscriptions grant you access to by enabling, disabling and overriding certain fields.</property>
   </object>
   <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <!--
+ interface-naming-policy project-wide -->
   <object class="GtkDialog" id="main_window">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
@@ -17,9 +18,7 @@
     <property name="icon_name">subscription-manager</property>
     <property name="type_hint">dialog</property>
     <property name="deletable">False</property>
-    <accessibility>
-      
-    </accessibility>
+    <accessibility/>
     <signal handler="on_dialog_delete_event" name="delete_event"/>
     <child internal-child="vbox">
       <object class="GtkVBox" id="main_container">
@@ -38,9 +37,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="xalign">0.45</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <signal handler="on_reset_button_clicked" name="clicked"/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-reset_button1">
@@ -60,9 +57,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <signal handler="on_close_button_clicked" name="clicked"/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-close_button1">
@@ -192,9 +187,7 @@
                                         <property name="editable">False</property>
                                         <property name="left_margin">10</property>
                                         <property name="cursor_visible">False</property>
-                                        <accessibility>
-                                          
-                                        </accessibility>
+                                        <accessibility/>
                                         <child internal-child="accessible">
                                           <object class="AtkObject" id="a11y-name_text1">
                                             <property name="AtkObject::accessible-name" translatable="yes">Subscription Text</property>
@@ -235,9 +228,7 @@
                                         <property name="wrap_mode">none</property>
                                         <property name="left_margin">10</property>
                                         <property name="cursor_visible">False</property>
-                                        <accessibility>
-                                          
-                                        </accessibility>
+                                        <accessibility/>
                                         <child internal-child="accessible">
                                           <object class="AtkObject" id="a11y-baseurl_text1">
                                             <property name="AtkObject::accessible-name" translatable="yes">SKU Text</property>
@@ -279,9 +270,7 @@
                                         <property name="enable_search">False</property>
                                         <property name="search_column">0</property>
                                         <property name="show_expanders">False</property>
-                                        <accessibility>
-                                          
-                                        </accessibility>
+                                        <accessibility/>
                                         <child internal-child="accessible">
                                           <object class="AtkObject" id="a11y-other_overrides_view1">
                                             <property name="AtkObject::accessible-name" translatable="yes">Other Overrides Table</property>

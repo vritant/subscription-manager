@@ -4,7 +4,8 @@
     <property name="text">Your installed products could be covered using one of multiple service levels.</property>
   </object>
   <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <!--
+ interface-naming-policy project-wide -->
   <object class="GtkVBox" id="container">
     <property name="visible">True</property>
     <property name="can_focus">False</property>

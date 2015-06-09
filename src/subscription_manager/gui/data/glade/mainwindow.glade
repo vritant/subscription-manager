@@ -147,7 +147,8 @@
     </ui>
   </object>
   <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <!--
+ interface-naming-policy project-wide -->
   <object class="GtkWindow" id="main_window">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Subscription Manager</property>

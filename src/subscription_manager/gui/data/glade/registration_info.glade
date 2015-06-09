@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <interface>
   <!-- interface-requires gtk+ 2.16 -->
-  <!-- interface-naming-policy project-wide -->
+  <!--
+ interface-naming-policy project-wide -->
   <object class="GtkVBox" id="container">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -19,9 +20,7 @@
             <property name="yalign">0</property>
             <property name="label" translatable="yes">This assistant will guide you through the process of registering your system with Red Hat to receive software updates and other benefits. You will need the following to register:</property>
             <property name="wrap">True</property>
-            <accessibility>
-              
-            </accessibility>
+            <accessibility/>
             <child internal-child="accessible">
               <object class="AtkObject" id="a11y-label981">
                 <property name="AtkObject::accessible-name" translatable="yes">This assistant will guide you through the process of registering your system with Red Hat to receive software updates and other benefits. You will need the following to register:</property>
@@ -65,9 +64,7 @@
                     <property name="can_focus">False</property>
                     <property name="xalign">0</property>
                     <property name="label" translatable="yes">&#x2022; Your account login</property>
-                    <accessibility>
-                      
-                    </accessibility>
+                    <accessibility/>
                     <child internal-child="accessible">
                       <object class="AtkObject" id="a11y-label361">
                         <property name="AtkObject::accessible-name" translatable="yes">Your account login</property>
@@ -113,9 +110,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_underline">True</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <signal handler="on_why_register_button_clicked" name="clicked"/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-why_register_button1">
@@ -232,9 +227,7 @@
             <property name="yalign">0</property>
             <property name="label" translatable="yes">Registering your system with Red Hat allows you to take full advantage of the benefits of a paid subscription, including:</property>
             <property name="wrap">True</property>
-            <accessibility>
-              
-            </accessibility>
+            <accessibility/>
             <child internal-child="accessible">
               <object class="AtkObject" id="a11y-label1191">
                 <property name="AtkObject::accessible-name" translatable="yes">Registering your system with Red Hat allows you to take full advantage of the benefits of a paid subscription, including:</property>
@@ -261,9 +254,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_underline">True</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <signal handler="on_back_to_reg_button_clicked" name="clicked"/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-back_to_reg_button1">
@@ -489,9 +480,7 @@
                     <property name="xalign">0</property>
                     <property name="label" translatable="yes">&lt;b&gt;Management:&lt;/b&gt;</property>
                     <property name="use_markup">True</property>
-                    <accessibility>
-                      
-                    </accessibility>
+                    <accessibility/>
                     <child internal-child="accessible">
                       <object class="AtkObject" id="a11y-label671">
                         <property name="AtkObject::accessible-name" translatable="yes">Management</property>
@@ -536,9 +525,7 @@
                             <property name="label" translatable="yes">Manage subscriptions and systems registered to Customer Portal via access.redhat.com or through one of our other subscription management services.</property>
                             <property name="use_markup">True</property>
                             <property name="wrap">True</property>
-                            <accessibility>
-                              
-                            </accessibility>
+                            <accessibility/>
                             <child internal-child="accessible">
                               <object class="AtkObject" id="a11y-label681">
                                 <property name="AtkObject::accessible-name" translatable="yes">Manage subscriptions and systems registered to Customer Portal via access.redhat.com or through one of our other subscription management services.</property>

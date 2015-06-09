@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <interface>
   <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <!--
+ interface-naming-policy project-wide -->
   <object class="GtkWindow" id="temp-window">
     <property name="can_focus">False</property>
     <property name="icon_name">subscription-manager</property>
@@ -23,9 +24,7 @@
               <object class="GtkTreeView" id="top_view">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-top_view1">
                     <property name="AtkObject::accessible-name" translatable="yes">My Subscriptions View</property>
@@ -64,9 +63,7 @@
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="yalign">0.46000000834465027</property>
-                        <accessibility>
-                          
-                        </accessibility>
+                        <accessibility/>
                         <signal handler="on_unsubscribe_button_clicked" name="clicked"/>
                         <child internal-child="accessible">
                           <object class="AtkObject" id="a11y-unsubscribe_button1">

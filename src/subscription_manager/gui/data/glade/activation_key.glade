@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <interface>
   <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <!--
+ interface-naming-policy project-wide -->
   <object class="GtkVBox" id="container">
     <property name="visible">True</property>
     <child>
@@ -69,9 +70,7 @@
             <property name="can_focus">True</property>
             <property name="tooltip-text" translatable="yes">This must be the organization key, not the name.</property>
             <property name="invisible_char">&#x25CF;</property>
-            <accessibility>
-              
-            </accessibility>
+            <accessibility/>
             <child internal-child="accessible">
               <object class="AtkObject" id="a11y-organization_entry1">
                 <property name="AtkObject::accessible-name" translatable="yes">organization_entry</property>
@@ -89,9 +88,7 @@
             <property name="can_focus">True</property>
             <property name="tooltip-text" translatable="yes">Multiple Activation Keys can be entered by separating them with a comma or a space.</property>
             <property name="invisible_char">&#x25CF;</property>
-            <accessibility>
-              
-            </accessibility>
+            <accessibility/>
             <child internal-child="accessible">
               <object class="AtkObject" id="a11y-activation_key_entry1">
                 <property name="AtkObject::accessible-name" translatable="yes">activation_key_entry</property>
@@ -110,9 +107,7 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">&#x25CF;</property>
-            <accessibility>
-              
-            </accessibility>
+            <accessibility/>
             <child internal-child="accessible">
               <object class="AtkObject" id="a11y-consumer_entry1">
                 <property name="AtkObject::accessible-name" translatable="yes">consumer_entry</property>

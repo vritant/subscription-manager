@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <interface>
   <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <!--
+ interface-naming-policy project-wide -->
   <object class="GtkDialog" id="networkConfigDialog">
     <property name="title" translatable="yes">Proxy Configuration</property>
     <property name="modal">True</property>
@@ -46,9 +47,7 @@
                         <property name="receives_default">False</property>
                         <property name="use_underline">True</property>
                         <property name="draw_indicator">True</property>
-                        <accessibility>
-                          
-                        </accessibility>
+                        <accessibility/>
                         <child internal-child="accessible">
                           <object class="AtkObject" id="a11y-enableProxyButton1">
                             <property name="AtkObject::accessible-name" translatable="yes">Proxy Checkbox</property>
@@ -123,9 +122,7 @@
                                 <property name="sensitive">False</property>
                                 <property name="can_focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Enter in the format hostname(:port)</property>
-                                <accessibility>
-                                  
-                                </accessibility>
+                                <accessibility/>
                                 <child internal-child="accessible">
                                   <object class="AtkObject" id="a11y-proxyEntry1">
                                     <property name="AtkObject::accessible-name" translatable="yes">Proxy Location Text</property>
@@ -157,9 +154,7 @@
                         <property name="receives_default">False</property>
                         <property name="use_underline">True</property>
                         <property name="draw_indicator">True</property>
-                        <accessibility>
-                          
-                        </accessibility>
+                        <accessibility/>
                         <child internal-child="accessible">
                           <object class="AtkObject" id="a11y-enableProxyAuthButton1">
                             <property name="AtkObject::accessible-name" translatable="yes">Authentication Checkbox</property>
@@ -216,9 +211,7 @@
                                 <property name="visible">True</property>
                                 <property name="sensitive">False</property>
                                 <property name="can_focus">True</property>
-                                <accessibility>
-                                  
-                                </accessibility>
+                                <accessibility/>
                                 <child internal-child="accessible">
                                   <object class="AtkObject" id="a11y-proxyUserEntry1">
                                     <property name="AtkObject::accessible-name" translatable="yes">Username Text</property>
@@ -238,9 +231,7 @@
                                 <property name="can_focus">True</property>
                                 <property name="visibility">False</property>
                                 <property name="invisible_char">&#x2022;</property>
-                                <accessibility>
-                                  
-                                </accessibility>
+                                <accessibility/>
                                 <child internal-child="accessible">
                                   <object class="AtkObject" id="a11y-proxyPasswordEntry1">
                                     <property name="AtkObject::accessible-name" translatable="yes">Password Text</property>
@@ -278,9 +269,7 @@
         <child>
           <object class="GtkLabel" id="connectionStatusLabel">
             <property name="visible">True</property>
-            <accessibility>
-              
-            </accessibility>
+            <accessibility/>
             <child internal-child="accessible">
               <object class="AtkObject" id="a11y-connectionStatusLabel1">
                 <property name="AtkObject::accessible-name" translatable="yes">connectionStatusLabel</property>
@@ -302,9 +291,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_underline">True</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-cancelButton1">
                     <property name="AtkObject::accessible-name" translatable="yes">Cancel Button</property>
@@ -324,9 +311,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="use_underline">True</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-saveButton1">
                     <property name="AtkObject::accessible-name" translatable="yes">Save Button</property>
@@ -346,9 +331,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_underline">True</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-testConnectionButton1">
                     <property name="AtkObject::accessible-name" translatable="yes">Test Connection Button</property>

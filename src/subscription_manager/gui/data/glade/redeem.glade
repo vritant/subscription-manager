@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <interface>
   <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <!--
+
+ interface-naming-policy project-wide -->
   <object class="GtkDialog" id="redeem_dialog">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
@@ -126,9 +128,7 @@ when the redemption is complete.</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="invisible_char">&#x25CF;</property>
-                    <accessibility>
-                      
-                    </accessibility>
+                    <accessibility/>
                     <child internal-child="accessible">
                       <object class="AtkObject" id="a11y-email_entry1">
                         <property name="AtkObject::accessible-name" translatable="yes">Email Address Text</property>

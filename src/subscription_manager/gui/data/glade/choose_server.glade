@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <interface>
   <!-- interface-requires gtk+ 2.10 -->
-  <!-- interface-naming-policy project-wide -->
+  <!--
+ interface-naming-policy project-wide -->
   <object class="GtkVBox" id="container">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -24,9 +25,7 @@
                 <property name="label" translatable="yes">The subscription management service you register with will provide your system with updates and allow additional management.</property>
                 <property name="use_markup">True</property>
                 <property name="wrap">True</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-choose_server_label1">
                     <property name="AtkObject::accessible-name" translatable="yes">choose_server_label</property>
@@ -92,9 +91,7 @@
                 <property name="xalign">0</property>
                 <property name="xpad">12</property>
                 <property name="label" translatable="yes">I will register with:</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-server_label1">
                     <property name="AtkObject::accessible-name" translatable="yes">server_label</property>
@@ -116,9 +113,7 @@
                 <property name="secondary_icon_activatable">False</property>
                 <property name="primary_icon_sensitive">True</property>
                 <property name="secondary_icon_sensitive">True</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <signal handler="on_server_entry_changed" name="changed"/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-server_entry1">
@@ -138,9 +133,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="tooltip-text" translatable="yes">Reset to register with Customer Portal.</property>
-                <accessibility>
-                  
-                </accessibility>
+                <accessibility/>
                 <signal handler="on_default_button_clicked" name="clicked"/>
                 <child internal-child="accessible">
                   <object class="AtkObject" id="a11y-default_button1">
@@ -277,9 +270,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <accessibility>
-                          
-                        </accessibility>
+                        <accessibility/>
                         <signal handler="on_proxy_button_clicked" name="clicked"/>
                         <child internal-child="accessible">
                           <object class="AtkObject" id="a11y-proxy_button1">
