@@ -109,8 +109,8 @@ from subscription_manager import ga_loader
 sys.meta_path.append(ga_loader.GaImporter())
 
 #import subscription_manager.ga.GObject
-print sys.path
-print sys.modules
+#print sys.path
+#print sys.modules
 from subscription_manager.ga import GObject as ga_GObject
 
 from subscription_manager.ga import Gtk as ga_Gtk

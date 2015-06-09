@@ -14,7 +14,6 @@ class GaVirtualModule(object):
 class GaImporter(object):
     def __init__(self):
         log.debug("ga_loader")
-        print "ga_loader"
         self.ga_modules = ["GObject", "GLib", "Gdk", "Gtk", "Pango", "GdkPixbuf"]
         self.virtual_modules = {'subscription_manager.ga': None,
                                 'subscription_manager.ga.info': ['subscription_manager.notga',
@@ -36,21 +35,31 @@ class GaImporter(object):
         #log.debug("find_module: fullname=%s", fullname)
         #log.debug("find_module: path=%s", path)
         if fullname in self.virtual_modules:
-            print "fullname: %s" % fullname
-            print "    path: %s" % path
+#            print "fullname: %s" % fullname
+#            print "    path: %s" % path
 #            print "fullname in self.virtual_modules"
             return self
-        #if fullname == self.virtual_name:
-        #    return self
-        print "   did not find the module: %s" % fullname
         return None
 
     def _dirprint(self, module):
+        return
         print "module ", module, type(module)
         for i in dir(module):
             if i == "__builtins__":
                 continue
             print "\t%s = %s" % (i, getattr(module, i))
+
+    def _virtual_ga(self, fullname):
+        """Create a top level 'ga' namespace module, we can populate with impl specific."""
+        ret = sys.modules.setdefault(fullname, imp.new_module(fullname))
+        ret.__name__ = fullname
+        ret.__loader__ = self
+        ret.__filename__ = fullname
+        ret.__path__ = ['subscription_manager.ga']
+        ret.__package__ = '.'.join(fullname.split('.')[:-1])
+        self._dirprint(ret)
+
+        return ret
 
     def load_module(self, fullname):
         print "load_module: fullname %s" % fullname
@@ -62,48 +71,28 @@ class GaImporter(object):
         if fullname not in self.virtual_modules:
             raise ImportError(fullname)
 
+        # The base namespace
+        if fullname == "subscription_manager.ga":
+            return self._virtual_ga(fullname)
+
         real_module_name = real_fromlist = None
         mod_info = self.virtual_modules[fullname]
         if mod_info:
             real_module_name, real_fromlist = mod_info
-        print "real_module_name", real_module_name, real_fromlist
+        #print "real_module_name", real_module_name, real_fromlist
 
-        if real_fromlist:
-            ret = __import__(real_module_name, globals(), locals(), [real_fromlist])
-#            print "from", getattr(ret, real_fromlist)
-            pp(dir(ret))
-            self._dirprint(ret)
-            inner_ret = getattr(ret, real_fromlist)
-            print "inner"
-            self._dirprint(inner_ret)
-            #pp(inner_ret)
-            #pp(dir(inner_ret))
-#            print inner_ret.__name__
-            #inner_ret.__loader__
-            #inner_ret.__name__ = fullname
-            #inner_ret.__package__ = False
-            ret = inner_ret
+        if not real_fromlist:
+            raise ImportError(fullname)
 
-        else:
-            ret = sys.modules.setdefault(fullname, imp.new_module(fullname))
-            ret.__name__ = fullname
-            ret.__loader__ = self
-            ret.__filename__ = fullname
-            ret.__path__ = ['subscription_manager.ga']
-            ret.__package__ = '.'.join(fullname.split('.')[:-1])
-            self._dirprint(ret)
-
-            #ret.GTK_BUILDER_FILES_DIR = "/usr/share/rhsm/subscription_manager/gui/data/ui/"
-            return ret
-        #if real_fromname == "subscription_manager.ga":
-        #    ret.__package__ = True
-
+        ret = __import__(real_module_name, globals(), locals(), [real_fromlist])
+        #pp(dir(ret))
+        self._dirprint(ret)
+        inner_ret = getattr(ret, real_fromlist)
+        #print "inner"
+        self._dirprint(inner_ret)
+        ret = inner_ret
         ret.__name__ = fullname
         ret.__loader__ = self
         ret.__package__ = True
         sys.modules[fullname] = ret
-#       pp(dir(ret))
-        #pp(sys.modules)
         return ret
-
-        raise ImportError(fullname)

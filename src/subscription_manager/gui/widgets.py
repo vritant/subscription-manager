@@ -96,10 +96,6 @@ class BuilderFileBasedWidget(FileBasedGui):
     def from_file(cls, builder_file):
         builder_based_widget = cls()
         builder_based_widget.gui_file = builder_file
-        print ga_info
-        print dir(ga_info)
-        for i in dir(ga_info):
-            print i, getattr(ga_info, '%s' % i)
 
         #print "ga", ga.GTK_BUILDER_FILES_DIR
         builder_based_widget.file_dir = ga_info.GTK_BUILDER_FILES_DIR
