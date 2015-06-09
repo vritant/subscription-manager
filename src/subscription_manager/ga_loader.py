@@ -96,9 +96,29 @@ class GaImporterGtk3(GaImporter):
                                                                   'Pango']}
 
 
+class GaImporterGtk2(GaImporter):
+    def __init__(self):
+        log.debug("ga_loader")
+        self.virtual_modules = {'subscription_manager.ga': None,
+                                'subscription_manager.ga.info': ['subscription_manager.notga',
+                                                                 'ga_gtk2'],
+                                'subscription_manager.ga.GObject': ['subscription_manager.notga.ga_gtk2',
+                                                                    'GObject'],
+                                'subscription_manager.ga.Gdk': ['subscription_manager.notga.ga_gtk2',
+                                                                'Gdk'],
+                                'subscription_manager.ga.Gtk': ['subscription_manager.notga.ga_gtk2',
+                                                                'Gtk'],
+                                'subscription_manager.ga.GLib': ['subscription_manager.notga.ga_gtk2',
+                                                                 'GLib'],
+                                'subscription_manager.ga.GdkPixbuf': ['subscription_manager.notga.ga_gtk2',
+                                                                      'GdkPixbuf'],
+                                'subscription_manager.ga.Pango': ['subscription_manager.notga.ga_gtk2',
+                                                                  'Pango']}
+
+
 def init_ga():
-    gtk_version = 3
+    gtk_version = 2
     if gtk_version == 3:
         sys.meta_path.append(GaImporterGtk3())
     if gtk_version == 2:
-        raise Exception('That does not work yet')
+        sys.meta_path.append(GaImporterGtk2())

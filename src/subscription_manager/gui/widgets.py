@@ -98,6 +98,7 @@ class BuilderFileBasedWidget(FileBasedGui):
         builder_based_widget.gui_file = builder_file
 
         #print "ga", ga.GTK_BUILDER_FILES_DIR
+        builder_based_widget.gui_file_suffix = ga_info.GTK_BUILDER_FILES_SUFFIX
         builder_based_widget.file_dir = ga_info.GTK_BUILDER_FILES_DIR
 
         builder_based_widget._load_file()
