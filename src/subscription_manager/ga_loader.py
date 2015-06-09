@@ -9,9 +9,41 @@ pp = pprint.pprint
 
 
 class GaImporter(object):
+    namespace = "subscription_manager.ga"
+    virtual_modules = {}
+
+    def find_module(self, fullname, path):
+        if fullname in self.virtual_modules:
+            return self
+        return None
+
+    def _new_module(self, fullname):
+        """Create a an empty module, we can populate with impl specific."""
+        ret = sys.modules.setdefault(fullname, imp.new_module(fullname))
+        ret.__name__ = fullname
+        ret.__loader__ = self
+        ret.__filename__ = fullname
+        ret.__path__ = [fullname]
+        ret.__package__ = '.'.join(fullname.split('.')[:-1])
+        pp(dir(ret))
+        return ret
+
+    def _namespace_module(self):
+        return self._new_module(self.namespace)
+
+    def _dirprint(self, module):
+        return
+        print "module ", module, type(module)
+        for i in dir(module):
+            if i == "__builtins__":
+                continue
+            print "\t%s = %s" % (i, getattr(module, i))
+
+
+class GaImporterGtk3(GaImporter):
+
     def __init__(self):
         log.debug("ga_loader")
-        self.ga_modules = ["GObject", "GLib", "Gdk", "Gtk", "Pango", "GdkPixbuf"]
         self.virtual_modules = {'subscription_manager.ga': None,
                                 'subscription_manager.ga.info': ['subscription_manager.notga',
                                                                  'ga_gtk3'],
@@ -28,65 +60,34 @@ class GaImporter(object):
                                 'subscription_manager.ga.Pango': ['gi.repository',
                                                                   'Pango']}
 
-    def find_module(self, fullname, path):
-        #log.debug("find_module: fullname=%s", fullname)
-        #log.debug("find_module: path=%s", path)
-        if fullname in self.virtual_modules:
-#            print "fullname: %s" % fullname
-#            print "    path: %s" % path
-#            print "fullname in self.virtual_modules"
-            return self
-        return None
-
-    def _dirprint(self, module):
-        return
-        print "module ", module, type(module)
-        for i in dir(module):
-            if i == "__builtins__":
-                continue
-            print "\t%s = %s" % (i, getattr(module, i))
-
-    def _virtual_ga(self, fullname):
-        """Create a top level 'ga' namespace module, we can populate with impl specific."""
-        ret = sys.modules.setdefault(fullname, imp.new_module(fullname))
-        ret.__name__ = fullname
-        ret.__loader__ = self
-        ret.__filename__ = fullname
-        ret.__path__ = ['subscription_manager.ga']
-        ret.__package__ = '.'.join(fullname.split('.')[:-1])
-        self._dirprint(ret)
-
-        return ret
-
     def load_module(self, fullname):
         print "load_module: fullname %s" % fullname
-        #pp(sys.modules)
         if fullname in sys.modules:
-            print "%s is in sys.modules" % fullname
             return sys.modules[fullname]
 
         if fullname not in self.virtual_modules:
             raise ImportError(fullname)
 
         # The base namespace
-        if fullname == "subscription_manager.ga":
-            return self._virtual_ga(fullname)
+        if fullname == self.namespace:
+            return self._namespace_module()
 
-        real_module_name = real_fromlist = None
+        real_module_name = real_module_from = None
         mod_info = self.virtual_modules[fullname]
+        print mod_info
         if mod_info:
-            real_module_name, real_fromlist = mod_info
-        #print "real_module_name", real_module_name, real_fromlist
+            real_module_name, real_module_from = mod_info
 
-        if not real_fromlist:
+        if not real_module_from:
             raise ImportError(fullname)
 
-        ret = __import__(real_module_name, globals(), locals(), [real_fromlist])
-        #pp(dir(ret))
-        self._dirprint(ret)
-        inner_ret = getattr(ret, real_fromlist)
-        #print "inner"
-        self._dirprint(inner_ret)
+        # looks like a real_module alias
+        return self._import_real_module(fullname, real_module_name, real_module_from)
+
+    def _import_real_module(self, fullname, module_name, module_from):
+        print "module_from", module_from
+        ret = __import__(module_name, globals(), locals(), [module_from])
+        inner_ret = getattr(ret, module_from)
         ret = inner_ret
         ret.__name__ = fullname
         ret.__loader__ = self
@@ -98,6 +99,6 @@ class GaImporter(object):
 def init_ga():
     gtk_version = 3
     if gtk_version == 3:
-        sys.meta_path.append(GaImporter())
+        sys.meta_path.append(GaImporterGtk3())
     if gtk_version == 2:
         raise Exception('That does not work yet')
