@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 #from gi.repository from gi.repository import Gtk
 
 from subscription_manager import ga
-ga.GObject.threads_init()
+ga_GObject.threads_init()
 from subscription_manager.gui import managergui
 from subscription_manager.injectioninit import init_dep_injection
 from subscription_manager import injection as inj

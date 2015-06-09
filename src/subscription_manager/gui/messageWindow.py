@@ -14,7 +14,6 @@
 #
 import gettext
 
-from subscription_manager import ga
 from subscription_manager.ga import GObject as ga_GObject
 from subscription_manager.ga import Gtk as ga_Gtk
 
