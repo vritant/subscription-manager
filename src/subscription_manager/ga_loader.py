@@ -117,7 +117,7 @@ class GaImporterGtk2(GaImporter):
 
 
 def init_ga():
-    gtk_version = 2
+    gtk_version = 3
     if gtk_version == 3:
         sys.meta_path.append(GaImporterGtk3())
     if gtk_version == 2:

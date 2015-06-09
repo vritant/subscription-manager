@@ -1,7 +1,10 @@
 
-
-# TODO: make this smarter and based on path to module
-GTK_BUILDER_FILES_DIR = "/usr/share/rhsm/subscription_manager/gui/data/ui/"
+import os
+# ../../gui/data/glade/
+ourfile = __file__
+GTK_BUILDER_FILES_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__),
+                                                      "../gui/data/ui/"))
+GTK_BUILDER_FILES_SUFFIX = "ui"
 
 # gtk3 requires constructing with .new(), where
 # gtk2 does not have a .new()
