@@ -17,4 +17,4 @@ def tree_row_reference(model, path):
 
 
 methods = [tree_row_reference]
-#__all__ = [GLib, GObject, Gdk, Gtk, Pango, GdkPixbuf] + methods
+__all__ = [GLib, GObject, Gdk, Gtk, Pango, GdkPixbuf] + methods
