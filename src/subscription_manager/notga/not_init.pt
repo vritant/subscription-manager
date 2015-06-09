@@ -1,0 +1,78 @@
+import os
+
+import logging
+log = logging.getLogger('rhsm-app.' + __name__)
+
+
+class GaImporter(object):
+    def __init__(self):
+        self.virtual_modules = {'ga.repository': True,
+                                'ga.repository.GObject': True,
+                                'subscription_manager.ga.Gtk': True,
+                                'subscription_manager.ga.GLib': True}
+    def find_module(self, fullname, path):
+        #log.debug("find_module: fullname=%s", fullname)
+        print "fullname: %s" % fullname
+        #log.debug("find_module: path=%s", path)
+        if fullname in self.virtual_modules:
+            log.debug("FFFFFFFFFFF")
+            return self
+        #if fullname == self.virtual_name:
+        #    return self
+        return None
+
+    def load_module(self, fullname):
+        log.debug("=== LOAD MODULE === load_module: fullname %s", fullname)
+        if fullname not in self.virtual_modules:
+            raise ImportError(fullname)
+        print "load_module: %s" % fullname
+        modparts = fullname.split('.')
+        print modparts
+        ga_module_name = modparts[-1]
+
+        if modparts[0] == "subscription_manager" and modparts[1] == "ga":
+            modparts = modparts[2:]
+        print "mp", modparts
+
+        modparts.insert(0, 'gi')
+        print "mp2", modparts
+        #import_ga_module_parts = modparts[:-1]
+        #import_ga_module_parts.extend(['ga_gtk3', ga_module_name])
+        #print "igmp", import_ga_module_parts
+        #impl_ga_module_name = '.'.join(import_ga_module_parts)
+        #print "about to import %s" % impl_ga_module_name
+        #from subscription_manager.ga.ga_gtk3 import GObject as gob
+        #return gob
+        #foo =  __import__(impl_ga_module_name)
+        #print foo
+        #return foo
+        #return self.virtual_modules[fullname]
+
+
+GTK_VERSION = "gtk3"
+if 'SUBMAN_GTK_VERSION' in os.environ:
+    GTK_VERSION = os.environ.get('SUBMAN_GTK_VERSION')
+
+if GTK_VERSION == "gtk2":
+    from subscription_manager.ga.ga_gtk2 import Gtk
+    from subscription_manager.ga.ga_gtk2 import Gdk
+    from subscription_manager.ga.ga_gtk2 import GLib
+    from subscription_manager.ga.ga_gtk2 import GObject
+    from subscription_manager.ga.ga_gtk2 import GdkPixbuf
+    from subscription_manager.ga.ga_gtk2 import Pango
+    from subscription_manager.ga.ga_gtk2.Gtk import tree_row_reference
+    from subscription_manager.ga.ga_gtk2 import GTK_BUILDER_FILES_DIR
+
+if GTK_VERSION == "gtk4":
+    # ga_gtk3 has an __all__ that includes all the symbols we
+    # provide abstraction for.
+    from subscription_manager.ga.ga_gtk3 import GObject
+    from subscription_manager.ga.ga_gtk3 import GLib
+    from subscription_manager.ga.ga_gtk3 import Gdk
+    from subscription_manager.ga.ga_gtk3 import Gtk
+    from subscription_manager.ga.ga_gtk3 import GdkPixbuf
+    from subscription_manager.ga.ga_gtk3 import Pango
+    from subscription_manager.ga.ga_gtk3 import tree_row_reference
+    from subscription_manager.ga.ga_gtk3 import GTK_BUILDER_FILES_DIR
+
+#__all__ = [Gtk]
