@@ -31,9 +31,9 @@ class GaImporter(object):
         #log.debug("find_module: fullname=%s", fullname)
         #log.debug("find_module: path=%s", path)
         if fullname in self.virtual_modules:
-            print "fullname: %s" % fullname
-            print "    path: %s" % path
-            print "fullname in self.virtual_modules"
+#            print "fullname: %s" % fullname
+#            print "    path: %s" % path
+#            print "fullname in self.virtual_modules"
             return self
         #if fullname == self.virtual_name:
         #    return self
@@ -54,11 +54,12 @@ class GaImporter(object):
 
         if real_fromlist:
             ret = __import__(real_module_name, globals(), locals(), [real_fromlist])
-            print "from", getattr(ret, real_fromlist)
+#            print "from", getattr(ret, real_fromlist)
+            pp(dir(ret))
             inner_ret = getattr(ret, real_fromlist)
-            pp(inner_ret)
-            pp(dir(inner_ret))
-            print inner_ret.__name__
+            #pp(inner_ret)
+            #pp(dir(inner_ret))
+#            print inner_ret.__name__
             #inner_ret.__loader__
             #inner_ret.__name__ = fullname
             #inner_ret.__package__ = False
@@ -66,6 +67,19 @@ class GaImporter(object):
 
         else:
             ret = __import__(real_module_name)
+            ret.__name__ = fullname
+            ret.__loader__ = self
+            ret.__file__ = ret.notga.ga_gtk3.__file__
+
+            #print ret
+            pp(dir(ret))
+            for i in dir(ret):
+                print "%s = %s" % (i, getattr(ret, i))
+
+            #pp(sys.modules)
+            sys.modules[fullname] = ret
+            #pp(sys.modules)
+            #sys.exit()
 
         #if real_fromname == "subscription_manager.ga":
         #    ret.__package__ = True
@@ -74,7 +88,7 @@ class GaImporter(object):
         ret.__loader__ = self
         ret.__package__ = True
         sys.modules[fullname] = ret
-        pp(dir(ret))
+#       pp(dir(ret))
         #pp(sys.modules)
         return ret
 

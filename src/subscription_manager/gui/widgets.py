@@ -96,9 +96,12 @@ class BuilderFileBasedWidget(FileBasedGui):
     def from_file(cls, builder_file):
         builder_based_widget = cls()
         builder_based_widget.gui_file = builder_file
-        print "dir", dir(ga)
         print ga
-        print "ga", ga.GTK_BUILDER_FILES_DIR
+        print dir(ga)
+        for i in dir(ga):
+            print i, getattr(ga, '%s' % i)
+
+        #print "ga", ga.GTK_BUILDER_FILES_DIR
         builder_based_widget.file_dir = ga.GTK_BUILDER_FILES_DIR
 
         builder_based_widget._load_file()
