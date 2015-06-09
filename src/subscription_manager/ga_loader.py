@@ -7,9 +7,6 @@ log = logging.getLogger('rhsm-app.' + __name__)
 import pprint
 pp = pprint.pprint
 
-class GaVirtualModule(object):
-    pass
-
 
 class GaImporter(object):
     def __init__(self):
@@ -96,3 +93,11 @@ class GaImporter(object):
         ret.__package__ = True
         sys.modules[fullname] = ret
         return ret
+
+
+def init_ga():
+    gtk_version = 3
+    if gtk_version == 3:
+        sys.meta_path.append(GaImporter())
+    if gtk_version == 2:
+        raise Exception('That does not work yet')
