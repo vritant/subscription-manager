@@ -17,6 +17,41 @@ class GaImporter(object):
             return self
         return None
 
+    def load_module(self, fullname):
+        print "load_module: fullname %s" % fullname
+        if fullname in sys.modules:
+            return sys.modules[fullname]
+
+        if fullname not in self.virtual_modules:
+            raise ImportError(fullname)
+
+        # The base namespace
+        if fullname == self.namespace:
+            return self._namespace_module()
+
+        real_module_name = real_module_from = None
+        mod_info = self.virtual_modules[fullname]
+        print mod_info
+        if mod_info:
+            real_module_name, real_module_from = mod_info
+
+        if not real_module_from:
+            raise ImportError(fullname)
+
+        # looks like a real_module alias
+        return self._import_real_module(fullname, real_module_name, real_module_from)
+
+    def _import_real_module(self, fullname, module_name, module_from):
+        print "module_from", module_from
+        ret = __import__(module_name, globals(), locals(), [module_from])
+        inner_ret = getattr(ret, module_from)
+        ret = inner_ret
+        ret.__name__ = fullname
+        ret.__loader__ = self
+        ret.__package__ = True
+        sys.modules[fullname] = ret
+        return ret
+
     def _new_module(self, fullname):
         """Create a an empty module, we can populate with impl specific."""
         ret = sys.modules.setdefault(fullname, imp.new_module(fullname))
@@ -59,41 +94,6 @@ class GaImporterGtk3(GaImporter):
                                                                       'GdkPixbuf'],
                                 'subscription_manager.ga.Pango': ['gi.repository',
                                                                   'Pango']}
-
-    def load_module(self, fullname):
-        print "load_module: fullname %s" % fullname
-        if fullname in sys.modules:
-            return sys.modules[fullname]
-
-        if fullname not in self.virtual_modules:
-            raise ImportError(fullname)
-
-        # The base namespace
-        if fullname == self.namespace:
-            return self._namespace_module()
-
-        real_module_name = real_module_from = None
-        mod_info = self.virtual_modules[fullname]
-        print mod_info
-        if mod_info:
-            real_module_name, real_module_from = mod_info
-
-        if not real_module_from:
-            raise ImportError(fullname)
-
-        # looks like a real_module alias
-        return self._import_real_module(fullname, real_module_name, real_module_from)
-
-    def _import_real_module(self, fullname, module_name, module_from):
-        print "module_from", module_from
-        ret = __import__(module_name, globals(), locals(), [module_from])
-        inner_ret = getattr(ret, module_from)
-        ret = inner_ret
-        ret.__name__ = fullname
-        ret.__loader__ = self
-        ret.__package__ = True
-        sys.modules[fullname] = ret
-        return ret
 
 
 def init_ga():
