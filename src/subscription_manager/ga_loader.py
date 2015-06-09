@@ -1,3 +1,4 @@
+import imp
 import sys
 
 import logging
@@ -6,14 +7,18 @@ log = logging.getLogger('rhsm-app.' + __name__)
 import pprint
 pp = pprint.pprint
 
+class GaVirtualModule(object):
+    pass
+
 
 class GaImporter(object):
     def __init__(self):
         log.debug("ga_loader")
         print "ga_loader"
         self.ga_modules = ["GObject", "GLib", "Gdk", "Gtk", "Pango", "GdkPixbuf"]
-        self.virtual_modules = {'subscription_manager.ga': ['subscription_manager.notga',
-                                                            'ga_gtk3'],
+        self.virtual_modules = {'subscription_manager.ga': None,
+                                'subscription_manager.ga.info': ['subscription_manager.notga',
+                                                                 'ga_gtk3'],
                                 'subscription_manager.ga.GObject': ['gi.repository',
                                                                     'GObject'],
                                 'subscription_manager.ga.Gdk': ['gi.repository',
@@ -31,32 +36,46 @@ class GaImporter(object):
         #log.debug("find_module: fullname=%s", fullname)
         #log.debug("find_module: path=%s", path)
         if fullname in self.virtual_modules:
-#            print "fullname: %s" % fullname
-#            print "    path: %s" % path
+            print "fullname: %s" % fullname
+            print "    path: %s" % path
 #            print "fullname in self.virtual_modules"
             return self
         #if fullname == self.virtual_name:
         #    return self
-        #print "   did not find the module: %s" % fullname
+        print "   did not find the module: %s" % fullname
         return None
 
+    def _dirprint(self, module):
+        print "module ", module, type(module)
+        for i in dir(module):
+            if i == "__builtins__":
+                continue
+            print "\t%s = %s" % (i, getattr(module, i))
+
     def load_module(self, fullname):
-        print "=== LOAD MODULE === load_module: fullname %s" % fullname
+        print "load_module: fullname %s" % fullname
         #pp(sys.modules)
         if fullname in sys.modules:
+            print "%s is in sys.modules" % fullname
             return sys.modules[fullname]
 
         if fullname not in self.virtual_modules:
             raise ImportError(fullname)
 
-        real_module_name, real_fromlist = self.virtual_modules[fullname]
+        real_module_name = real_fromlist = None
+        mod_info = self.virtual_modules[fullname]
+        if mod_info:
+            real_module_name, real_fromlist = mod_info
         print "real_module_name", real_module_name, real_fromlist
 
         if real_fromlist:
             ret = __import__(real_module_name, globals(), locals(), [real_fromlist])
 #            print "from", getattr(ret, real_fromlist)
             pp(dir(ret))
+            self._dirprint(ret)
             inner_ret = getattr(ret, real_fromlist)
+            print "inner"
+            self._dirprint(inner_ret)
             #pp(inner_ret)
             #pp(dir(inner_ret))
 #            print inner_ret.__name__
@@ -66,21 +85,16 @@ class GaImporter(object):
             ret = inner_ret
 
         else:
-            ret = __import__(real_module_name)
+            ret = sys.modules.setdefault(fullname, imp.new_module(fullname))
             ret.__name__ = fullname
             ret.__loader__ = self
-            ret.__file__ = ret.notga.ga_gtk3.__file__
+            ret.__filename__ = fullname
+            ret.__path__ = ['subscription_manager.ga']
+            ret.__package__ = '.'.join(fullname.split('.')[:-1])
+            self._dirprint(ret)
 
-            #print ret
-            pp(dir(ret))
-            for i in dir(ret):
-                print "%s = %s" % (i, getattr(ret, i))
-
-            #pp(sys.modules)
-            sys.modules[fullname] = ret
-            #pp(sys.modules)
-            #sys.exit()
-
+            ret.GTK_BUILDER_FILES_DIR = "/usr/share/rhsm/subscription_manager/gui/data/ui/"
+            return ret
         #if real_fromname == "subscription_manager.ga":
         #    ret.__package__ = True
 
