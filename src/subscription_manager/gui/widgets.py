@@ -23,7 +23,7 @@ import warnings
 from rhsm.certificate import GMT
 from dateutil.tz import tzlocal
 
-from subscription_manager import ga
+from subscription_manager.ga import info as ga_info
 from subscription_manager.ga import GObject as ga_GObject
 from subscription_manager.ga import Gdk as ga_Gdk
 from subscription_manager.ga import Gtk as ga_Gtk
@@ -96,13 +96,13 @@ class BuilderFileBasedWidget(FileBasedGui):
     def from_file(cls, builder_file):
         builder_based_widget = cls()
         builder_based_widget.gui_file = builder_file
-        print ga
-        print dir(ga)
-        for i in dir(ga):
-            print i, getattr(ga, '%s' % i)
+        print ga_info
+        print dir(ga_info)
+        for i in dir(ga_info):
+            print i, getattr(ga_info, '%s' % i)
 
         #print "ga", ga.GTK_BUILDER_FILES_DIR
-        builder_based_widget.file_dir = ga.GTK_BUILDER_FILES_DIR
+        builder_based_widget.file_dir = ga_info.GTK_BUILDER_FILES_DIR
 
         builder_based_widget._load_file()
 

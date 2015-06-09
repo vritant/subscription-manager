@@ -93,7 +93,7 @@ class GaImporter(object):
             ret.__package__ = '.'.join(fullname.split('.')[:-1])
             self._dirprint(ret)
 
-            ret.GTK_BUILDER_FILES_DIR = "/usr/share/rhsm/subscription_manager/gui/data/ui/"
+            #ret.GTK_BUILDER_FILES_DIR = "/usr/share/rhsm/subscription_manager/gui/data/ui/"
             return ret
         #if real_fromname == "subscription_manager.ga":
         #    ret.__package__ = True
