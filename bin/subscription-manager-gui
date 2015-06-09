@@ -114,7 +114,7 @@ sys.meta_path.append(ga_loader.GaImporter())
 #from subscription_manager.ga import GObject
 from subscription_manager.ga import GObject
 
-GObject.threads_init()
+#GObject.threads_init()
 
 # quick check to see if you are a super-user.
 if os.getuid() != 0:
