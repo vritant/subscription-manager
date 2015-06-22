@@ -12,6 +12,7 @@
 
 from rhsm_facts.hardware import hwprobe
 from rhsm_facts.hardware import network
+from rhsm_facts.hardware import cpuinfo
 
 
 class HardwareCollector(object):
@@ -24,5 +25,10 @@ class HardwareCollector(object):
 
         network_facts = network.Network().collect(collected_facts)
         collected_facts.update(network_facts)
+
+        # FIXME: updating dict in the collecter, returning the whole
+        #        dict, then updating it with itself
+        cpuinfo_facts = cpuinfo.Cpuinfo().collect(collected_facts)
+        collected_facts.update(cpuinfo_facts)
 
         return collected_facts

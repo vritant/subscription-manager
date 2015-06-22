@@ -438,3 +438,29 @@ class SystemCpuInfoFactory(object):
         with open(cls.proc_cpuinfo_path, 'r') as proc_cpuinfo_f:
             proc_cpuinfo_buf = proc_cpuinfo_f.read()
         return proc_cpuinfo_buf
+
+
+class Cpuinfo(object):
+    fact_namespace = 'cpuinfo'
+
+    def __init__(self, prefix=None, testing=None):
+        self.data = {}
+        self.prefix = prefix or ''
+
+    def collect(self, collected_facts=None):
+        uname_machine = collected_facts.get('uname.machine')
+
+        proc_cpuinfo_source = SystemCpuInfoFactory.from_uname_machine(uname_machine)
+        cpuinfo_model = proc_cpuinfo_source.cpu_info
+        proc_cpuinfo_dict = {}
+
+        for key, value in cpuinfo_model.common.items():
+            proc_cpuinfo_dict['%s.common.%s' % (self.fact_namespace, key)] = value
+
+        # NOTE: cpu_info.other is a potentially ordered non-uniq list, so may
+        # not make sense for shoving into a list.
+        for key, value in cpuinfo_model.other:
+            proc_cpuinfo_dict['%s.system.%s' % (self.fact_namespace, key)] = value
+
+        collected_facts.update(proc_cpuinfo_dict)
+        return collected_facts
