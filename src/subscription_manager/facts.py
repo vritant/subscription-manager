@@ -95,10 +95,11 @@ class Facts(CacheManager):
         # Default collector is hardware, software, plus custom from
         # /etc/rhsm/facts/
         dc = default_collector.DefaultCollector(custom_facts_dir=rhsm.config.DEFAULT_CONFIG_DIR.rstrip('/'))
-        dc.collect(fact_data)
+        fact_data = dc.collect(fact_data)
         #fact_data.update(dc.facts)
 
-        log.debug(dc.facts)
+        log.debug("collect_facts")
+        log.debug(fact_data)
         # Set the preferred entitlement certificate version:
         fact_data.update({"system.certificate_version": CERT_VERSION})
 
