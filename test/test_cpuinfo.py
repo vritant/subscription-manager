@@ -3,7 +3,7 @@ import os
 import logging
 log = logging.getLogger("rhsm-app.unittests." + __name__)
 
-from subscription_manager import cpuinfo
+from rhsm_facts.hardware import cpuinfo
 
 import fixture
 
