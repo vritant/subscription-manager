@@ -1,0 +1,21 @@
+vendor_id       : IBM/S390
+# processors    : 17
+bogomips per cpu: 14367.00
+features	: esan3 zarch stfle msa ldisp eimm dfp etf3eh highgprs 
+processor 1: version = 00,  identification = 279F25,  machine = 2817
+processor 2: version = 00,  identification = 279F25,  machine = 2817
+processor 3: version = 00,  identification = 279F25,  machine = 2817
+processor 4: version = 00,  identification = 279F25,  machine = 2817
+processor 5: version = 00,  identification = 279F25,  machine = 2817
+processor 8: version = 00,  identification = 279F25,  machine = 2817
+processor 9: version = 00,  identification = 279F25,  machine = 2817
+processor 10: version = 00,  identification = 279F25,  machine = 2817
+processor 11: version = 00,  identification = 279F25,  machine = 2817
+processor 12: version = 00,  identification = 279F25,  machine = 2817
+processor 13: version = 00,  identification = 279F25,  machine = 2817
+processor 14: version = 00,  identification = 279F25,  machine = 2817
+processor 15: version = 00,  identification = 279F25,  machine = 2817
+processor 16: version = 00,  identification = 279F25,  machine = 2817
+processor 17: version = 00,  identification = 279F25,  machine = 2817
+processor 18: version = 00,  identification = 279F25,  machine = 2817
+processor 19: version = 00,  identification = 279F25,  machine = 2817

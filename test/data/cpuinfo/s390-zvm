@@ -1,0 +1,8 @@
+vendor_id       : IBM/S390
+# processors    : 4
+bogomips per cpu: 14367.00
+features	: esan3 zarch stfle msa ldisp eimm dfp etf3eh highgprs 
+processor 0: version = FF,  identification = 000123,  machine = 2817
+processor 1: version = FF,  identification = 100123,  machine = 2817
+processor 2: version = FF,  identification = 200123,  machine = 2817
+processor 3: version = FF,  identification = 200123,  machine = 2817

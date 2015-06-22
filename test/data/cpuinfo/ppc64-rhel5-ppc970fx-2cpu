@@ -1,0 +1,13 @@
+processor	: 0
+cpu		: PPC970FX, altivec supported
+clock		: 2194.624509MHz
+revision	: 3.0 (pvr 003c 0300)
+
+processor	: 1
+cpu		: PPC970FX, altivec supported
+clock		: 2194.624509MHz
+revision	: 3.0 (pvr 003c 0300)
+
+timebase	: 14318000
+platform	: pSeries
+machine		: CHRP IBM,8842-P2C
