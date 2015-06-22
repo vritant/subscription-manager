@@ -208,30 +208,6 @@ class Hardware:
 
         return distname, version, dist_id, version_modifier
 
-    def get_mem_info(self):
-        self.meminfo = {}
-
-        # most of this mem info changes constantly, which makes decding
-        # when to update facts painful, so lets try to just collect the
-        # useful bits
-
-        useful = ["MemTotal", "SwapTotal"]
-        try:
-            parser = re.compile(r'^(?P<key>\S*):\s*(?P<value>\d*)\s*kB')
-            memdata = open('/proc/meminfo')
-            for info in memdata:
-                match = parser.match(info)
-                if not match:
-                    continue
-                key, value = match.groups(['key', 'value'])
-                if key in useful:
-                    nkey = '.'.join(["memory", key.lower()])
-                    self.meminfo[nkey] = "%s" % int(value)
-        except Exception, e:
-            print _("Error reading system memory information:"), e
-        self.allhw.update(self.meminfo)
-        return self.meminfo
-
     def get_ls_cpu_info(self):
         # if we have `lscpu`, let's use it for facts as well, under
         # the `lscpu` name space
@@ -477,7 +453,6 @@ class Hardware:
     def get_all(self):
         hardware_methods = [self.get_uname_info,
                             self.get_release_info,
-                            self.get_mem_info,
                             self.get_ls_cpu_info,
                             self.get_network_interfaces,
                             self.get_virt_info,

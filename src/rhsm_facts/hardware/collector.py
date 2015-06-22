@@ -13,6 +13,7 @@
 from rhsm_facts.hardware import hwprobe
 from rhsm_facts.hardware import network
 from rhsm_facts.hardware import cpuinfo
+from rhsm_facts.hardware import memory
 
 
 class HardwareCollector(object):
@@ -30,5 +31,8 @@ class HardwareCollector(object):
         #        dict, then updating it with itself
         cpuinfo_facts = cpuinfo.Cpuinfo().collect(collected_facts)
         collected_facts.update(cpuinfo_facts)
+
+        memory_facts = memory.Memory().collect(collected_facts)
+        collected_facts.update(memory_facts)
 
         return collected_facts
