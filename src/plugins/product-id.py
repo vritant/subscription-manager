@@ -36,8 +36,9 @@ log = logging.getLogger('rhsm-app.' + __name__)
 def is_rhsm_repo(repo):
     repo_items = repo.iteritems()
     for key, value in repo_items:
-        log.debug('key=%s, value=%s', key, value)
-        if key == 'generated_by' and value == 'subscription-manager':
+        #log.debug('key=%s, value=%s', key, value)
+        if key == 'rhsm_generated' and value:
+            log.debug('key=%s, value=%s', key, value)
             return True
     return False
 
@@ -85,9 +86,10 @@ def posttrans_hook(conduit):
     # enabled repos, all, not just rhsm
     rhsm_enabled_repos = {}
     all_enabled_repos = yb.repos.listEnabled()
+    log.debug("all_enabled_repos=%s", all_enabled_repos)
     for enabled_repo in all_enabled_repos:
         if is_rhsm_repo(enabled_repo):
-            rhsm_enabled_repos[enabled_repo.name] = enabled_repo
+            rhsm_enabled_repos[enabled_repo.id] = enabled_repo
 
     log.debug("rhsm_enabled_repos=%s", rhsm_enabled_repos)
 
@@ -98,10 +100,16 @@ def posttrans_hook(conduit):
             log.debug(tx_member.pkgtup)
             pos = yb.rpmdb.searchPkgTuple(tx_member.pkgtup)
             po = pos[0]
-
+            log.debug("po=%s", po)
             # This is post tranaction, and we should have added
             # any repos that rhsm repos that were used in ProductManager.update
             # so pm.db should have the repo
+
+            # http://yum.baseurl.org/wiki/YumDB claims this should always exist?
+            if not hasattr(po.yumdb_info, 'from_repo'):
+                log.debug("no from_repo? %s", po)
+                continue
+
             from_repo = po.yumdb_info.from_repo
             pids = pm.db.search_by_repo(from_repo)
 
@@ -109,9 +117,13 @@ def posttrans_hook(conduit):
             log.debug("rhsm_repo=%s", rhsm_repo)
             if rhsm_repo:
                 rhsm_item_iter = iter_rhsm_items(rhsm_repo)
-                # populate the rhsm_ info
+                # populate the rhsm_ info to yumdb
                 for rhsm_key, rhsm_value in rhsm_item_iter:
-                    setattr(po.yumdb_info, rhsm_key, rhsm_value)
+                    # we need to stringify values
+                    if isinstance(rhsm_value, list):
+                        rhsm_value = ','.join(rhsm_value)
+                    log.debug("setting yumdb_info.%s=%s", rhsm_key, rhsm_value)
+                    setattr(po.yumdb_info, rhsm_key, str(rhsm_value))
 
             # Or, we could see if its a rhsm_repo
             # if we know the from_repo, and it's ours, add a 'rhsm_installed'
