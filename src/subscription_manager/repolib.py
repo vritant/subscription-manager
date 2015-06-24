@@ -536,7 +536,7 @@ class Repo(dict):
 
         repo = Repo._set_proxy_info(repo)
 
-        repo['generated_by'] = 'subscription-manager'
+        repo['rhsm_generated'] = True
         repo['rhsm_issuer'] = Repo.format_issuer(content.cert.issuer)
         repo['rhsm_begins'] = content.cert.start
         repo['rhsm_expiration'] = content.cert.end
