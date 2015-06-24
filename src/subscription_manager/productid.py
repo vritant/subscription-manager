@@ -56,7 +56,7 @@ class ProductIdRepoMap(utils.DefaultDict):
         self.default_factory = list
 
 
-class ProductDatabase:
+class ProductDatabase(object):
 
     def __init__(self):
         self.dir = DatabaseDirectory()
@@ -75,6 +75,14 @@ class ProductDatabase:
 
     def find_repos(self, product):
         return self.content.get(product, None)
+
+    def search_by_repo(self, repo):
+        """For a 'repo', return the list of product ids that map to it."""
+        products = []
+        for product, repo_list in self.content.items():
+            if repo in repo_list:
+                products.append(product)
+        return products
 
     def create(self):
         if not os.path.exists(self.__fn()):
