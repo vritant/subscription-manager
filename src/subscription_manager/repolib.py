@@ -536,7 +536,66 @@ class Repo(dict):
 
         repo = Repo._set_proxy_info(repo)
 
+        repo['generated_by'] = 'subscription-manager'
+        repo['rhsm_issuer'] = Repo.format_issuer(content.cert.issuer)
+        repo['rhsm_begins'] = content.cert.start
+        repo['rhsm_expiration'] = content.cert.end
+        repo['rhsm_account'] = content.cert.order.account
+        repo['rhsm_contract'] = content.cert.order.contract
+        repo['rhsm_order_number'] = content.cert.order.number
+        repo['rhsm_order_name'] = content.cert.order.name
+        repo['rhsm_sku'] = content.cert.order.sku
+        repo['rhsm_pool_id'] = content.cert.pool.id
+        repo['rhsm_content_tags'] = ','.join(content.tags)
+
+        # FIXME: TODO: It would be useful to which installed products
+        #  map to the repo we building. With the current available info
+        #  we only know the product info included in the "entitlement data" blob
+        #  appended to an ent cert. The info there is incomplete compared to a
+        #  product id cert (required_tags the main one). There is also no tie
+        #  between a particular Product and a Content. (Those relations get
+        #  flattened before we get to repolib, but that could change).
+        #
+        # If we pull the infomation here, we could populate info about which
+        # installed product ids resulted in a Content/yum repo def being here.
+        # That could be a list of product ids in some cases (multiple installed
+        # products providing 'rhel-7-server-rpms' for example).
+        #
+        # If we know which installed product id ties to the repo def we are
+        # generating, we could also include the Product and Content tags that
+        # "matched"
+        #
+        # NOTE: with a post transaction yum plugin, we can potentially also
+        #       push any of this info into yumdb info for a package. So we could
+        #       track which repo/product/sku/pool/etc provided access for the
+        #       package to be installed. This could make "is this product in
+        #       use" easier to answer.
+        # repo['rhsm_product_tags'] = 'rhel-6,rhel-6-server'
+        # for product in content.cert.products:
+            # log.debug('id=%s', product.id)
+            # log.debug('product_tags=%s', product.provided_tags)
+            # repo['rhsm_product_id'] = '%s' % product.id
+            # repo['rhsm_product_tags'] = ','.join(product.provided_tags)
+
         return repo
+
+    @staticmethod
+    def name_expand(issuer, field):
+        if issuer.get(field, None):
+            return '%s=%s/' % (field, issuer[field])
+        return ''
+
+    @staticmethod
+    def format_issuer(issuer):
+        # Likely better to use something from openssl
+        buf = ''
+        buf += Repo.name_expand(issuer, 'CN')
+        buf += Repo.name_expand(issuer, 'O')
+        buf += Repo.name_expand(issuer, 'OU')
+        buf += Repo.name_expand(issuer, 'emailAddress')
+        buf += Repo.name_expand(issuer, 'ST')
+        buf += Repo.name_expand(issuer, 'C')
+        return buf
 
     @staticmethod
     def _set_proxy_info(repo):
