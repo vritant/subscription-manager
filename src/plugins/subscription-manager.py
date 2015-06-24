@@ -18,6 +18,7 @@
 import os
 import sys
 from yum.plugins import TYPE_CORE, TYPE_INTERACTIVE
+from yum import config as yum_config
 
 sys.path.append('/usr/share/rhsm')
 
@@ -148,6 +149,20 @@ def warnOrGiveUsageMessage(conduit):
     finally:
         if msg:
             conduit.info(2, msg)
+
+
+def config_hook(conduit):
+    yum_config.RepoConf.rhsm_generated = yum_config.BoolOption(False)
+    yum_config.RepoConf.rhsm_issuer = yum_config.Option()
+    yum_config.RepoConf.rhsm_begins = yum_config.Option()
+    yum_config.RepoConf.rhsm_expiration = yum_config.Option()
+    yum_config.RepoConf.rhsm_account = yum_config.Option()
+    yum_config.RepoConf.rhsm_contract = yum_config.Option()
+    yum_config.RepoConf.rhsm_order_name = yum_config.Option()
+    yum_config.RepoConf.rhsm_order_number = yum_config.Option()
+    yum_config.RepoConf.rhsm_sku = yum_config.Option()
+    yum_config.RepoConf.rhsm_pool_id = yum_config.Option()
+    yum_config.RepoConf.rhsm_content_tags = yum_config.ListOption()
 
 
 def postconfig_hook(conduit):
