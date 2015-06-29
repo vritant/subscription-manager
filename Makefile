@@ -352,7 +352,7 @@ install-yum-plugins:
 	install -d $(PREFIX)/etc/yum/pluginconf.d/
 	install -m 644 -p src/plugins/*.py $(PREFIX)/usr/lib/yum-plugins/
 
-install-code:
+install-code: install-ostree install-plugins install-yum-plugins install-ga install-gui install-post-boot
 	install -d $(PYTHON_INST_DIR)/gui
 	install -d $(PYTHON_INST_DIR)/gui/data/icons
 	install -d $(PYTHON_INST_DIR)/branding
@@ -376,7 +376,7 @@ install-code:
 	install -m 755 $(DAEMONS_SRC_DIR)/rhsmcertd-worker.py \
 		$(PREFIX)/usr/libexec/rhsmcertd-worker
 
-install-bin: install-code install-ostree install-yum-plugins
+install-bin: install-code
 	install -d $(PREFIX)/usr/bin
 	install -d $(PREFIX)/usr/sbin
 	install -d $(PREFIX)/usr/libexec
@@ -416,7 +416,7 @@ install-init:
 	fi; \
 
 
-install-files: set-versions dbus-service-install install-bin install-misc install-init install-plugins install-post-boot install-ga install-gui
+install-files: set-versions dbus-service-install install-bin install-misc install-init
 	install -d $(PREFIX)/var/log/rhsm
 	install -d $(PREFIX)/var/spool/rhsm/debug
 	install -d $(PREFIX)/var/run/rhsm
