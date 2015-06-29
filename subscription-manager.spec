@@ -27,6 +27,8 @@
 %global use_firstboot 1
 %global use_old_firstboot 1
 %endif
+%global use_dnf (0%{?fedora} && 0%{?fedora} >= 22)
+
 
 %global _hardened_build 1
 %{!?__global_ldflags: %global __global_ldflags -Wl,-z,relro -Wl,-z,now}
@@ -242,6 +244,7 @@ Requires: subscription-manager-migration-data
 This package contains scripts that aid in moving to certificate based
 subscriptions
 
+%if %use_dnf
 %package -n dnf-plugin-subscription-manager
 Summary: Subscription Manager plugins for DNF
 Group: System Environment/Base
@@ -250,6 +253,7 @@ Requires: dnf > 1.0.0
 
 %description -n dnf-plugin-subscription-manager
 Subscription Manager plugins for DNF, contains subscription-manager and product-id plugins.
+%endif
 
 %prep
 %setup -q
@@ -528,9 +532,11 @@ rm -rf %{buildroot}
 %doc README.Fedora
 %endif
 
+%if %use_dnf
 %files -n dnf-plugin-subscription-manager
 %defattr(-,root,root,-)
 %{python_sitelib}/dnf-plugins/*
+%endif
 
 %post
 %if %use_systemd
