@@ -34,6 +34,15 @@
 %define post_boot_tool INSTALL_INITIAL_SETUP=true INSTALL_FIRSTBOOT=false
 %else
 %define post_boot_tool INSTALL_INITIAL_SETUP=false INSTALL_FIRSTBOOT=true
+
+# makefile defaults to INSTALL_YUM_PLUGIN=true
+%define install_yum_plugins INSTALL_YUM_PLUGINS=true
+
+# makefile defaults to INSTALL_DNF_PLUGIN=false
+if %use_dnf
+%define install_dnf_plugins INSTALL_DNF_PLUGINS=true
+%else
+%define install_dnf_plugins INSTALL_DNF_PLUGINS=false
 %endif
 
 Name: subscription-manager
@@ -243,7 +252,8 @@ rm -rf %{buildroot}
 make -f Makefile install VERSION=%{version}-%{release} \
     PREFIX=%{buildroot} MANPATH=%{_mandir} PYTHON_SITELIB=%{python_sitelib} \
     OS_VERSION=%{?fedora}%{?rhel} OS_DIST=%{dist} \
-    %{?install_ostree} %{?post_boot_tool} %{?gtk_version}
+    %{?install_ostree} %{?post_boot_tool} %{?gtk_version} \
+    %{?install_yum_plugins} %{?install_dnf_plugins}
 
 desktop-file-validate \
         %{buildroot}/etc/xdg/autostart/rhsm-icon.desktop
