@@ -33,6 +33,8 @@ EXAMPLE_PLUGINS_SRC_DIR := example-plugins/
 CONTENT_PLUGINS_SRC_DIR := $(BASE_SRC_DIR)/content_plugins/
 ANACONDA_ADDON_SRC_DIR := $(BASE_SRC_DIR)/initial-setup
 ANACONDA_ADDON_MODULE_SRC_DIR := $(ANACONDA_ADDON_SRC_DIR)/$(ANACONDA_ADDON_NAME)
+ICONS_SRC_DIR := $(SRC_DIR)/gui/data/icons/hicolor
+MAN_SRC_DIR := man
 
 # dirs we install to 
 SUBMAN_INST_DIR := $(PREFIX)/$(INSTALL_DIR)/$(INSTALL_MODULE)/$(PKGNAME)
@@ -44,6 +46,8 @@ INITIAL_SETUP_INST_DIR := $(ANACONDA_ADDON_INST_DIR)/$(ANACONDA_ADDON_NAME)
 RCT_INST_DIR := $(PREFIX)/$(INSTALL_DIR)/$(INSTALL_MODULE)/rct
 RD_INST_DIR := $(PREFIX)/$(INSTALL_DIR)/$(INSTALL_MODULE)/rhsm_debug
 RHSM_LOCALE_DIR := $(PREFIX)/$(INSTALL_DIR)/locale
+ICONS_DIR := $(PREFIX)/usr/share/icons/hicolor
+MAN_DIR := $(PREFIX)/$(INSTALL_DIR)/man
 
 # ui builder data files
 GLADE_INST_DIR := $(SUBMAN_INST_DIR)/gui/data/glade
@@ -77,6 +81,8 @@ VERSION ?= $(shell git describe | awk ' { sub(/subscription-manager-/,"")};1' )
 CFLAGS ?= -g -Wall
 LDFLAGS ?=
 
+MAN_8_FILES = $(wildcard $(MAN_SRC_DIR)/*.8)
+MAN_5_FILES = $(wildcard $(MAN_SRC_DIR)/*.5)
 
 %.pyc: %.py
 	python -c "import py_compile; py_compile.compile('$<')"
@@ -130,10 +136,17 @@ dbus-service-install:
 	install -m 744 $(DAEMONS_SRC_DIR)/rhsm_d.py \
 		$(PREFIX)/usr/libexec/rhsmd
 
-install-conf:
-	install etc-conf/rhsm.conf $(PREFIX)/etc/rhsm/
+install-conf-dirs:
+	install -d $(PREFIX)/etc/rhsm/facts
+	install -d $(PREFIX)/etc/xdg/autostart
+	install -d $(PREFIX)/etc/cron.daily
+	install -d $(PREFIX)/etc/pam.d
+	install -d $(PREFIX)/etc/logrotate.d
+	install -d $(PREFIX)/etc/security/console.apps
+	install -d $(PREFIX)/etc/rc.d/init.d
+
+install-conf: install-conf-dirs
 	install -T etc-conf/logrotate.conf $(PREFIX)/etc/logrotate.d/subscription-manager
-	install -T etc-conf/logging.conf $(PREFIX)/etc/rhsm/logging.conf
 	install etc-conf/plugin/*.conf $(PREFIX)/etc/yum/pluginconf.d/
 	install -m 644 etc-conf/subscription-manager.completion.sh $(PREFIX)/etc/bash_completion.d/subscription-manager
 	install -m 644 etc-conf/rct.completion.sh $(PREFIX)/etc/bash_completion.d/rct
@@ -142,6 +155,11 @@ install-conf:
 	install -m 644 etc-conf/rhsm-icon.completion.sh $(PREFIX)/etc/bash_completion.d/rhsm-icon
 	install -m 644 etc-conf/rhsmcertd.completion.sh $(PREFIX)/etc/bash_completion.d/rhsmcertd
 	install -m 644 etc-conf/subscription-manager-gui.appdata.xml $(PREFIX)/$(INSTALL_DIR)/appdata/subscription-manager-gui.appdata.xml
+
+install-rhsm-conf: install-conf
+	install -d $(PREFIX)/etc/rhsm
+	install etc-conf/rhsm.conf $(PREFIX)/etc/rhsm/
+	install -T etc-conf/logging.conf $(PREFIX)/etc/rhsm/logging.conf
 
 install-help-files:
 	install -d $(PREFIX)/$(INSTALL_DIR)/gnome/help/subscription-manager
@@ -281,7 +299,7 @@ endif
 install-post-boot: install-firstboot install-initial-setup
 
 .PHONY: install
-install: install-files install-po install-conf install-help-files install-plugins-conf
+install: install-files install-po install-rhsm-conf install-help-files install-plugins-conf
 
 set-versions:
 	sed -e 's/RPM_VERSION/$(VERSION)/g' $(SRC_DIR)/version.py.in > $(SRC_DIR)/version.py
@@ -307,7 +325,34 @@ install-ui:
 # We could choose here, but it doesn't matter.
 install-gui: install-glade install-ui
 
-install-files: set-versions dbus-service-install desktop-files install-plugins install-post-boot install-ga install-gui
+install-man:
+	install -d $(MAN_DIR)/man5/
+	install -d $(MAN_DIR)/man8/
+	$(foreach file,$(MAN_8_FILES),install -m 0644 $(file) $(MAN_DIR)/man8/$(notdir $(file)); )
+	$(foreach file,$(MAN_5_FILES),install -m 0644 $(file) $(MAN_DIR)/man5/$(notdir $(file)); )
+
+install-icons:
+	for src in $(ICONS_SRC_DIR)/*/apps/subscription-manager.png; do \
+		dst="$(ICONS_DIR)/$${src#$(ICONS_SRC_DIR)}"; \
+		dir="$${dst%/subscription-manager.png}"; \
+		install -m 0755 -d "$$dir" && install -m 0644 "$$src" "$$dst"; \
+	done ; \
+	install -m 644 $(SRC_DIR)/gui/data/icons/*.svg \
+		$(SUBMAN_INST_DIR)/gui/data/icons
+
+install-misc: install-icons install-man desktop-files
+
+install-ostree:
+	if [ "$(INSTALL_OSTREE_PLUGIN)" = "true" ] ; then \
+		install -m 644 -p $(SRC_DIR)/plugin/ostree/*.py $(SUBMAN_INST_DIR)/plugin/ostree ; \
+	fi
+
+install-yum-plugins:
+	install -d $(PREFIX)/usr/lib/yum-plugins/
+	install -d $(PREFIX)/etc/yum/pluginconf.d/
+	install -m 644 -p src/plugins/*.py $(PREFIX)/usr/lib/yum-plugins/
+
+install-code:
 	install -d $(PYTHON_INST_DIR)/gui
 	install -d $(PYTHON_INST_DIR)/gui/data/icons
 	install -d $(PYTHON_INST_DIR)/branding
@@ -317,85 +362,33 @@ install-files: set-versions dbus-service-install desktop-files install-plugins i
 	install -d $(PYTHON_INST_DIR)/plugin/ostree
 	install -d $(PYTHON_INST_DIR)/plugin
 	install -d $(PYTHON_INST_DIR)/plugin/ostree
-	install -d $(PREFIX)/$(INSTALL_DIR)/locale/
-	install -d $(PREFIX)/usr/lib/yum-plugins/
-	install -d $(PREFIX)/usr/sbin
-	install -d $(PREFIX)/etc/rhsm
-	install -d $(PREFIX)/etc/rhsm/facts
-	install -d $(PREFIX)/etc/xdg/autostart
-	install -d $(PREFIX)/etc/cron.daily
-	install -d $(PREFIX)/etc/pam.d
-	install -d $(PREFIX)/etc/logrotate.d
-	install -d $(PREFIX)/etc/security/console.apps
-	install -d $(PREFIX)/etc/yum/pluginconf.d/
-	install -d $(PREFIX)/$(INSTALL_DIR)/man/man5/
-	install -d $(PREFIX)/$(INSTALL_DIR)/man/man8/
-	install -d $(PREFIX)/$(INSTALL_DIR)/applications
-	install -d $(PREFIX)/var/log/rhsm
-	install -d $(PREFIX)/var/spool/rhsm/debug
-	install -d $(PREFIX)/var/run/rhsm
-	install -d $(PREFIX)/var/lib/rhsm/facts
-	install -d $(PREFIX)/var/lib/rhsm/packages
-	install -d $(PREFIX)/var/lib/rhsm/cache
-	install -d $(PREFIX)/usr/bin
-	install -d $(PREFIX)/etc/rc.d/init.d
-	install -d $(PREFIX)/usr/share/icons/hicolor/16x16/apps
-	install -d $(PREFIX)/usr/share/icons/hicolor/22x22/apps
-	install -d $(PREFIX)/usr/share/icons/hicolor/24x24/apps
-	install -d $(PREFIX)/usr/share/icons/hicolor/32x32/apps
-	install -d $(PREFIX)/usr/share/icons/hicolor/48x48/apps
-	install -d $(PREFIX)/usr/share/icons/hicolor/96x96/apps
-	install -d $(PREFIX)/usr/share/icons/hicolor/256x256/apps
-	install -d $(PREFIX)/usr/share/icons/hicolor/scalable/apps
-	install -d $(PREFIX)/usr/share/rhsm/subscription_manager/gui/firstboot
-	install -d $(PREFIX)/usr/share/appdata
-
-
-	install -d $(PREFIX)/usr/libexec
-	install -m 755 $(DAEMONS_SRC_DIR)/rhsmcertd-worker.py \
-		$(PREFIX)/usr/libexec/rhsmcertd-worker
-
-
+	install -d $(PYTHON_INST_DIR)/gui/firstboot
 	install -m 644 -p $(SRC_DIR)/*.py $(PYTHON_INST_DIR)/
 	install -m 644 -p $(SRC_DIR)/gui/*.py $(PYTHON_INST_DIR)/gui
 	install -m 644 -p $(SRC_DIR)/migrate/*.py $(PYTHON_INST_DIR)/migrate
 	install -m 644 -p $(SRC_DIR)/branding/*.py $(PYTHON_INST_DIR)/branding
 	install -m 644 -p $(SRC_DIR)/model/*.py $(PYTHON_INST_DIR)/model
 	install -m 644 -p $(SRC_DIR)/plugin/*.py $(PYTHON_INST_DIR)/plugin
-	install -m 644 -p src/plugins/*.py $(PREFIX)/usr/lib/yum-plugins/
+	install -d $(RCT_INST_DIR)
+	install -m 644 -p $(RCT_SRC_DIR)/*.py $(RCT_INST_DIR)
+	install -d $(RD_INST_DIR)
+	install -m 644 -p $(RD_SRC_DIR)/*.py $(RD_INST_DIR)
+	install -m 755 $(DAEMONS_SRC_DIR)/rhsmcertd-worker.py \
+		$(PREFIX)/usr/libexec/rhsmcertd-worker
 
-	install -m 644 etc-conf/subscription-manager-gui.completion.sh $(PREFIX)/etc/bash_completion.d/subscription-manager-gui
-
-
-	if [ "$(INSTALL_OSTREE_PLUGIN)" = "true" ] ; then \
-		install -m 644 -p $(SRC_DIR)/plugin/ostree/*.py $(SUBMAN_INST_DIR)/plugin/ostree ; \
-	fi
-
-	#icons
-	install -m 644 $(SRC_DIR)/gui/data/icons/hicolor/16x16/apps/*.png \
-		$(PREFIX)/usr/share/icons/hicolor/16x16/apps
-	install -m 644 $(SRC_DIR)/gui/data/icons/hicolor/22x22/apps/*.png \
-		$(PREFIX)/usr/share/icons/hicolor/22x22/apps
-	install -m 644 $(SRC_DIR)/gui/data/icons/hicolor/24x24/apps/*.png \
-		$(PREFIX)/usr/share/icons/hicolor/24x24/apps
-	install -m 644 $(SRC_DIR)/gui/data/icons/hicolor/32x32/apps/*.png \
-		$(PREFIX)/usr/share/icons/hicolor/32x32/apps
-	install -m 644 $(SRC_DIR)/gui/data/icons/hicolor/48x48/apps/*.png \
-		$(PREFIX)/usr/share/icons/hicolor/48x48/apps
-	install -m 644 $(SRC_DIR)/gui/data/icons/hicolor/96x96/apps/*.png \
-		$(PREFIX)/usr/share/icons/hicolor/96x96/apps
-	install -m 644 $(SRC_DIR)/gui/data/icons/hicolor/256x256/apps/*.png \
-		$(PREFIX)/usr/share/icons/hicolor/256x256/apps
-	install -m 644 $(SRC_DIR)/gui/data/icons/hicolor/scalable/apps/*.svg \
-		$(PREFIX)/usr/share/icons/hicolor/scalable/apps
-	install -m 644 $(SRC_DIR)/gui/data/icons/*.svg \
-		$(SUBMAN_INST_DIR)/gui/data/icons
-
+install-bin: install-code install-ostree install-yum-plugins
+	install -d $(PREFIX)/usr/bin
+	install -d $(PREFIX)/usr/sbin
+	install -d $(PREFIX)/usr/libexec
 	install bin/subscription-manager $(PREFIX)/usr/sbin
 	install bin/rhn-migrate-classic-to-rhsm  $(PREFIX)/usr/sbin
 	install bin/subscription-manager-gui $(PREFIX)/usr/sbin
+	install bin/rct $(PREFIX)/usr/bin
+	install bin/rhsm-debug $(PREFIX)/usr/bin
 	install bin/rhsmcertd $(PREFIX)/usr/bin
+	install bin/rhsm-icon $(PREFIX)/usr/bin;\
 
+install-init:
 	# Set up rhsmcertd daemon. If installing on Fedora 17+ or RHEL 7+
 	# we prefer systemd over sysv as this is the new trend.
 	if [ $(OS) = Fedora ] ; then \
@@ -423,45 +416,39 @@ install-files: set-versions dbus-service-install desktop-files install-plugins i
 	fi; \
 
 
-	install -m 644 man/rhn-migrate-classic-to-rhsm.8 $(PREFIX)/$(INSTALL_DIR)/man/man8/
-	install -m 644 man/rhsmcertd.8 $(PREFIX)/$(INSTALL_DIR)/man/man8/
-	install -m 644 man/rhsm-icon.8 $(PREFIX)/$(INSTALL_DIR)/man/man8/
-	install -m 644 man/subscription-manager.8 $(PREFIX)/$(INSTALL_DIR)/man/man8/
-	install -m 644 man/subscription-manager-gui.8 $(PREFIX)/$(INSTALL_DIR)/man/man8/
-	install -m 644 man/rct.8 $(PREFIX)/$(INSTALL_DIR)/man/man8/
-	install -m 644 man/rhsm-debug.8 $(PREFIX)/$(INSTALL_DIR)/man/man8/
-	install -m 644 man/rhsm.conf.5 $(PREFIX)/$(INSTALL_DIR)/man/man5/
-
+install-files: set-versions dbus-service-install install-bin install-misc install-init install-plugins install-post-boot install-ga install-gui
+	install -d $(PREFIX)/var/log/rhsm
+	install -d $(PREFIX)/var/spool/rhsm/debug
+	install -d $(PREFIX)/var/run/rhsm
+	install -d $(PREFIX)/var/lib/rhsm/facts
+	install -d $(PREFIX)/var/lib/rhsm/packages
+	install -d $(PREFIX)/var/lib/rhsm/cache
+	install -d $(PREFIX)/usr/share/appdata
+	install -d $(PREFIX)/$(INSTALL_DIR)/locale/
+	install -d $(PREFIX)/$(INSTALL_DIR)/applications
+	
+	install -m 644 etc-conf/subscription-manager-gui.completion.sh $(PREFIX)/etc/bash_completion.d/subscription-manager-gui
+	
 	install -m 644 etc-conf/rhsm-icon.desktop \
 		$(PREFIX)/etc/xdg/autostart;\
-	install bin/rhsm-icon $(PREFIX)/usr/bin;\
-
+	
 	install -m 700 etc-conf/rhsmd.cron \
 		$(PREFIX)/etc/cron.daily/rhsmd
 	install -m 644 etc-conf/subscription-manager-gui.desktop \
 		$(PREFIX)/$(INSTALL_DIR)/applications
-
+	
 	ln -sf /usr/bin/consolehelper $(PREFIX)/usr/bin/subscription-manager-gui
 	ln -sf /usr/bin/consolehelper $(PREFIX)/usr/bin/subscription-manager
-
+	
 	install -m 644 etc-conf/subscription-manager-gui.pam \
 		$(PREFIX)/etc/pam.d/subscription-manager-gui
 	install -m 644 etc-conf/subscription-manager-gui.console \
 		$(PREFIX)/etc/security/console.apps/subscription-manager-gui
-
+	
 	install -m 644 etc-conf/subscription-manager.pam \
 		$(PREFIX)/etc/pam.d/subscription-manager
 	install -m 644 etc-conf/subscription-manager.console \
 		$(PREFIX)/etc/security/console.apps/subscription-manager
-
-	install -d $(RCT_INST_DIR)
-	install -m 644 -p $(RCT_SRC_DIR)/*.py $(RCT_INST_DIR)
-	install bin/rct $(PREFIX)/usr/bin
-
-	install -d $(RD_INST_DIR)
-	install -m 644 -p $(RD_SRC_DIR)/*.py $(RD_INST_DIR)
-	install bin/rhsm-debug $(PREFIX)/usr/bin
-
 
 desktop-files: etc-conf/rhsm-icon.desktop \
 				etc-conf/subscription-manager-gui.desktop
@@ -673,8 +660,6 @@ install-pip-requirements:
 
 .PHONY: jenkins
 jenkins: install-pip-requirements build stylish stylish-harder coverage-jenkins
-
-
 
 stylefiles:
 	@echo $(STYLEFILES)
