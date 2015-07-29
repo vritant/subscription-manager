@@ -81,6 +81,8 @@ class RHSMSpoke(FirstbootOnlySpokeMixIn, NormalSpoke):
         # each attaching different handlers.
         self._registergui.close_window_callback = self._close_window_callback
 
+        self._registergui._error_screen = registergui.CHOOSE_SERVER_PAGE
+
         # we have a ref to _register_box, but need to remove it from
         # the regustergui.window (a GtkDialog), and add it to the main
         # box in the action area of our initial-setup screen.
@@ -90,11 +92,15 @@ class RHSMSpoke(FirstbootOnlySpokeMixIn, NormalSpoke):
         self._register_box.show_all()
         self._registergui.initialize()
 
+    # Sigh...
     def _close_window_callback(self):
-        pass
+        log.debug("close window callback")
+        self._registergui.goto_error_screen()
 
     def finished(self):
         self._registergui.done()
+        self._registergui.cancel_button.hide()
+        self._registergui.register_button.hide()
         self._done = True
 
     # Update gui widgets to reflect state of self.data

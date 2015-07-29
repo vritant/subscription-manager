@@ -79,7 +79,7 @@ class FileBasedGui(object):
                                           "%s.%s" % (self.gui_file,
                                                      self.gui_file_suffix))
 
-        log.debug("loading gui file %s", gui_file_full_path)
+        #log.debug("loading gui file %s", gui_file_full_path)
         return gui_file_full_path
 
 

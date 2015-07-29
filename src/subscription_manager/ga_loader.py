@@ -94,9 +94,9 @@ class GaImporter(object):
         return None
 
     def load_module(self, fullname):
-        log.debug("ga_loader class %s loading virtual module %s from %s",
-                  self.__class__.__name__,
-                  fullname, self.virtual_modules[fullname])
+        #log.debug("ga_loader class %s loading virtual module %s from %s",
+        #          self.__class__.__name__,
+        #          fullname, self.virtual_modules[fullname])
         if fullname in sys.modules:
             return sys.modules[fullname]
 
