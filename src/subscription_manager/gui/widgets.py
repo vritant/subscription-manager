@@ -150,7 +150,15 @@ class SubmanBaseWidget(object):
         """
 
         for name in widget_names:
-            setattr(self, name, file_based_gui.get_object(name))
+            obj = file_based_gui.get_object(name)
+            if obj:
+                obj.set_name(name)
+            else:
+                log.debug("FIXME FIXME: %s %s %s is none",
+                          self.__class__.__name__,
+                          self.gui.gui_file_path,
+                          name)
+            setattr(self, name, obj)
 
     def connect_signals(self, signals):
         return self.gui.connect_signals(signals)

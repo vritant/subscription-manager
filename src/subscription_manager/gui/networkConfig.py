@@ -104,6 +104,7 @@ class NetworkConfigDialog(widgets.SubmanBaseWidget):
         if self.cfg.get("server", "proxy_hostname") and self.cfg.get("server", "proxy_user"):
             self.enableProxyAuthButton.set_active(True)
 
+        log.debug("abount to set_initial_values")
         self.enable_action(self.enableProxyAuthButton)
         self.enable_action(self.enableProxyButton)
 
